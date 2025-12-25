@@ -1,17 +1,11 @@
 <script>
 export default {
-  name: 'App',
+  name: 'App'
 }
 </script>
 
 <template>
-
-  <UButton>Button</UButton>
-  <UBanner title="This is a banner with an important message."/>
-
-
+  <UApp>
+    <RouterView />
+  </UApp>
 </template>
-
-<style scoped>
-
-</style>

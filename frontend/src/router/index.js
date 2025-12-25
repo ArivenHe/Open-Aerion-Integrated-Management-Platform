@@ -1,15 +1,15 @@
 import {createRouter, createWebHistory} from 'vue-router'
-import App from "@/App.vue";
+import DashboardView from "@/views/DashboardView.vue";
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
             path: '/',
-            component: App,
-        }
+            name: 'home',
+            component: DashboardView,
+        },
     ]
 })
-
 
 export default router
