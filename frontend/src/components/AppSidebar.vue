@@ -11,20 +11,20 @@ export default {
     return {
       items: [
         {
-          label: 'Dashboard',
+          label: '仪表盘',
           icon: 'i-heroicons-home',
           to: '/'
         },
         {
-          label: 'System',
+          label: '系统管理',
           icon: 'i-heroicons-cog-6-tooth',
           children: [
-            { label: 'Users', icon: 'i-heroicons-users', to: '/users' },
-            { label: 'Roles', icon: 'i-heroicons-user-group', to: '/roles' }
+            { label: '用户管理', icon: 'i-heroicons-users', to: '/users' },
+            { label: '角色管理', icon: 'i-heroicons-user-group', to: '/roles' }
           ]
         },
         {
-          label: 'Settings',
+          label: '设置',
           icon: 'i-heroicons-adjustments-horizontal',
           to: '/settings'
         }
@@ -150,15 +150,5 @@ export default {
         </div>
     </nav>
     
-    <!-- User Profile Snippet (Bottom) -->
-    <div class="p-4 border-t border-gray-200 dark:border-gray-800">
-      <div class="flex items-center gap-3">
-        <img src="https://avatars.githubusercontent.com/u/739984?v=4" class="w-8 h-8 rounded-full bg-gray-200" alt="User" />
-        <div v-if="!collapsed" class="flex flex-col">
-          <span class="text-sm font-medium text-gray-900 dark:text-white">User Name</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Admin</span>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
