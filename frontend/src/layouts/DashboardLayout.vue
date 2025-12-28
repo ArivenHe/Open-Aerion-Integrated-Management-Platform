@@ -30,7 +30,7 @@ export default {
       
       <main class="flex-1 overflow-y-auto p-6 scroll-smooth">
         <div class="max-w-7xl mx-auto">
-             <slot />
+             <RouterView />
         </div>
       </main>
     </div>

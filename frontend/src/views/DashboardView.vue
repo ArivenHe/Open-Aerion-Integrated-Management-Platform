@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue'
-import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart } from 'echarts/charts'
@@ -147,8 +146,7 @@ const recentActivity = ref({
 </script>
 
 <template>
-  <DashboardLayout>
-    <div class="space-y-8">
+  <div class="space-y-8">
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
@@ -332,5 +330,4 @@ const recentActivity = ref({
       </div>
 
     </div>
-  </DashboardLayout>
 </template>
