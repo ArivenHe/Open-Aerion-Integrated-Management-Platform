@@ -1,0 +1,6 @@
+.DS_Store
+.idea
+.vscode
+*.db
+**tmp**
+build-and-push.sh

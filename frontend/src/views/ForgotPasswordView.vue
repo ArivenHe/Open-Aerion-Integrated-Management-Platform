@@ -1,34 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-
-const isDark = ref(false)
-
-const toggleDark = () => {
-  isDark.value = !isDark.value
-  if (isDark.value) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
-}
-
-onMounted(() => {
-  isDark.value = document.documentElement.classList.contains('dark')
-})
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-white dark:bg-gray-950 relative">
-    <!-- Dark Mode Toggle -->
-    <div class="absolute top-4 right-4 z-50">
-      <button 
-        @click="toggleDark" 
-        class="flex items-center justify-center w-10 h-10 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
-      >
-        <UIcon :name="isDark ? 'i-heroicons-moon' : 'i-heroicons-sun'" class="w-5 h-5" />
-      </button>
-    </div>
-
+  <div class="min-h-screen flex bg-white dark:bg-gray-950">
     <!-- Left Side - Image/Branding -->
     <div class="hidden lg:flex lg:w-1/2 relative bg-gray-900 overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-br from-primary-600/90 to-cyan-900/90 z-10"></div>

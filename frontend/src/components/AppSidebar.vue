@@ -82,7 +82,7 @@ export default {
                  collapsed ? 'justify-center' : ''
                ]"
              >
-               <UIcon 
+               <Icon 
                  :name="item.icon" 
                  class="w-6 h-6 flex-shrink-0 transition-colors"
                  :class="isActive(item) ? 'text-primary-500' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'" 
@@ -109,7 +109,7 @@ export default {
                  collapsed ? 'justify-center' : ''
                ]"
             >
-               <UIcon 
+               <Icon 
                  :name="item.icon" 
                  class="w-6 h-6 flex-shrink-0 transition-colors"
                  :class="openMenus[item.label] ? 'text-primary-500' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'"
@@ -117,7 +117,7 @@ export default {
                
                <template v-if="!collapsed">
                  <span class="ml-3 flex-1 text-left truncate text-sm font-medium">{{ item.label }}</span>
-                 <UIcon 
+                 <Icon 
                    :name="openMenus[item.label] ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'" 
                    class="w-4 h-4 flex-shrink-0 text-gray-400 transition-transform duration-200" 
                  />

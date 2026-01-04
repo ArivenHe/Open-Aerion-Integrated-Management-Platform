@@ -1,6 +1,11 @@
 <script>
+import Icon from '@/components/Icon.vue'
+
 export default {
   name: 'AppHeader',
+  components: {
+    Icon
+  },
   props: {
     collapsed: Boolean
   },
