@@ -37,3 +37,4 @@ __screenshots__/
 /backend/aimp-user/target/
 /backend/aimp-gateway/target/
 /nacos/
+/.vscode/

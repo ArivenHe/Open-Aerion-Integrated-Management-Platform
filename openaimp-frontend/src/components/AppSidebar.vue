@@ -82,7 +82,7 @@ export default {
                  collapsed ? 'justify-center' : ''
                ]"
              >
-               <Icon 
+               <UIcon 
                  :name="item.icon" 
                  class="w-6 h-6 flex-shrink-0 transition-colors"
                  :class="isActive(item) ? 'text-primary-500' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'" 
