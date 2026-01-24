@@ -15,7 +15,8 @@ public class SaTokenConfigure implements WebMvcConfigurer {
             // 正确配置：拦截所有路径，但排除 /Auth 开头的请求
             SaRouter
                     .match("/**")                   // 拦截所有路径
-                    .notMatch("/Auth/**")           // 排除 /Auth 下的所有路径
+                    .notMatch("/auth/**")           // 排除 /auth 下的所有路径
+                    .notMatch("/captcha/**")
                     .notMatch("/public/**")
                     .notMatch("/image")
                     .notMatch("/Map/**")
