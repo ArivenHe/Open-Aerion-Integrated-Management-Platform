@@ -1,11 +1,11 @@
-package cn.ariven.openaimpbackend.dto;
+package cn.ariven.openaimpbackend.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class RegisterRequest {
+public class RequestRegister {
     @NotBlank(message = "Callsign is required")
     private String callsign;
 

@@ -1,10 +1,12 @@
 package cn.ariven.openaimpbackend.service;
 
-import cn.ariven.openaimpbackend.dto.*;
+import cn.ariven.openaimpbackend.dto.request.RequestLogin;
+import cn.ariven.openaimpbackend.dto.request.RequestRegister;
+import cn.ariven.openaimpbackend.dto.request.RequestResetPassword;
 
 public interface UserService {
-    void register(RegisterRequest request);
-    String login(LoginRequest request);
+    void register(RequestRegister request);
+    String login(RequestLogin request);
     void sendForgotPasswordCode(String email);
-    void resetPassword(ResetPasswordRequest request);
+    void resetPassword(RequestResetPassword request);
 }

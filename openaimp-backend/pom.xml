@@ -122,6 +122,11 @@
             <artifactId>hutool-captcha</artifactId>
             <version>5.8.26</version>
         </dependency>
+        <dependency>
+            <groupId>io.github.mivek</groupId>
+            <artifactId>metarParser-services</artifactId>
+            <version>2.20.3</version>
+        </dependency>
     </dependencies>
 
     <build>

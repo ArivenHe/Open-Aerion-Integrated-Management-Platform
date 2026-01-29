@@ -1,10 +1,10 @@
-package cn.ariven.openaimpbackend.dto;
+package cn.ariven.openaimpbackend.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class LoginRequest {
+public class RequestLogin {
     @NotBlank(message = "Callsign or Email is required")
     private String account; // Can be callsign or email
 

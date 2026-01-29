@@ -1,6 +1,8 @@
 package cn.ariven.openaimpbackend.service.impl;
 
-import cn.ariven.openaimpbackend.dto.*;
+import cn.ariven.openaimpbackend.dto.request.RequestLogin;
+import cn.ariven.openaimpbackend.dto.request.RequestRegister;
+import cn.ariven.openaimpbackend.dto.request.RequestResetPassword;
 import cn.ariven.openaimpbackend.pojo.User;
 import cn.ariven.openaimpbackend.repository.UserRepository;
 import cn.ariven.openaimpbackend.service.UserService;
@@ -34,7 +36,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void register(RegisterRequest request) {
+    public void register(RequestRegister request) {
         validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode());
 
         if (userRepository.existsByCallsign(request.getCallsign())) {
@@ -54,7 +56,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String login(LoginRequest request) {
+    public String login(RequestLogin request) {
         validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode());
 
         Optional<User> userOpt = userRepository.findByCallsign(request.getAccount());
@@ -103,7 +105,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
+    public void resetPassword(RequestResetPassword request) {
         String cachedCode = redisTemplate.opsForValue().get(RESET_CODE_PREFIX + request.getEmail());
         if (cachedCode == null || !cachedCode.equals(request.getCode())) {
             throw new RuntimeException("Invalid or expired code");

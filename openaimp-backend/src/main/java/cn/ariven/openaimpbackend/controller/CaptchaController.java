@@ -1,7 +1,7 @@
 package cn.ariven.openaimpbackend.controller;
 
 import cn.ariven.openaimpbackend.common.Result;
-import cn.ariven.openaimpbackend.dto.CaptchaResponse;
+import cn.ariven.openaimpbackend.dto.response.ResponseCaptcha;
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.LineCaptcha;
 import cn.hutool.core.lang.UUID;
@@ -22,7 +22,7 @@ public class CaptchaController {
     private static final String CAPTCHA_PREFIX = "captcha:";
 
     @GetMapping("/image")
-    public Result<CaptchaResponse> getCaptcha() {
+    public Result<ResponseCaptcha> getCaptcha() {
         // Generate line captcha (width, height, code count, line count)
         LineCaptcha lineCaptcha = CaptchaUtil.createLineCaptcha(200, 100, 4, 150);
         
@@ -33,6 +33,6 @@ public class CaptchaController {
         // Store in Redis for 5 minutes
         redisTemplate.opsForValue().set(CAPTCHA_PREFIX + key, code, Duration.ofMinutes(5));
 
-        return Result.success(new CaptchaResponse(key, imageBase64));
+        return Result.success(new ResponseCaptcha(key, imageBase64));
     }
 }

@@ -1,11 +1,11 @@
-package cn.ariven.openaimpbackend.dto;
+package cn.ariven.openaimpbackend.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class CaptchaResponse {
+public class ResponseCaptcha {
     private String key;
     private String imageBase64;
 }
