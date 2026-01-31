@@ -1,5 +1,7 @@
 package cn.ariven.openaimpbackend.component;
 
+import cn.ariven.openaimpbackend.pojo.Permission;
+import cn.ariven.openaimpbackend.pojo.Role;
 import cn.ariven.openaimpbackend.pojo.User;
 import cn.ariven.openaimpbackend.repository.UserRepository;
 import cn.dev33.satoken.stp.StpInterface;
@@ -28,8 +30,25 @@ public class StpInterfaceImpl implements StpInterface {
      */
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
-        // TODO: Implement permission logic
-        return new ArrayList<>();
+        long userId = StpUtil.getLoginIdAsLong();
+        Optional<User> userOptional = userRepository.findById(userId);
+
+        if (userOptional.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> permissionList = new ArrayList<>();
+        User user = userOptional.get();
+        if (user.getRoles() != null) {
+            for (Role role : user.getRoles()) {
+                if (role.getPermissions() != null) {
+                    for (Permission permission : role.getPermissions()) {
+                        permissionList.add(permission.getCode());
+                    }
+                }
+            }
+        }
+        return permissionList;
     }
 
     /**
@@ -38,16 +57,22 @@ public class StpInterfaceImpl implements StpInterface {
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
         long userId = StpUtil.getLoginIdAsLong();
-        log.info("Fetching roles for user ID: {}", userId);
+        // log.info("Fetching roles for user ID: {}", userId); // Optional logging
 
         Optional<User> userOptional = userRepository.findById(userId);
 
         if (userOptional.isEmpty()) {
-            log.warn("User not found with ID: {}", userId);
+            // log.warn("User not found with ID: {}", userId);
             return Collections.emptyList();
         }
 
-        // TODO: Implement role logic
-        return new ArrayList<>();
+        List<String> roleList = new ArrayList<>();
+        User user = userOptional.get();
+        if (user.getRoles() != null) {
+            for (Role role : user.getRoles()) {
+                roleList.add(role.getName());
+            }
+        }
+        return roleList;
     }
 }

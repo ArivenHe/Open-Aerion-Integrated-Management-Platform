@@ -1,12 +1,12 @@
 package cn.ariven.openaimpbackend.controller;
 
 import cn.ariven.openaimpbackend.common.Result;
-import cn.ariven.openaimpbackend.dto.request.RequestAtisInfo;
-import cn.ariven.openaimpbackend.dto.request.RequestMetar;
-import cn.ariven.openaimpbackend.dto.request.RequestRoute;
-import cn.ariven.openaimpbackend.dto.response.ResponseAtisInfo;
-import cn.ariven.openaimpbackend.dto.response.ResponseFlightRoute;
-import cn.ariven.openaimpbackend.dto.response.ResponseMetar;
+import cn.ariven.openaimpbackend.dto.request.common.RequestAtisInfo;
+import cn.ariven.openaimpbackend.dto.request.common.RequestMetar;
+import cn.ariven.openaimpbackend.dto.request.common.RequestRoute;
+import cn.ariven.openaimpbackend.dto.response.common.ResponseAtisInfo;
+import cn.ariven.openaimpbackend.dto.response.common.ResponseFlightRoute;
+import cn.ariven.openaimpbackend.dto.response.common.ResponseMetar;
 import cn.ariven.openaimpbackend.service.RouteService;
 import cn.ariven.openaimpbackend.service.WeatherService;
 import io.github.mivek.exception.ParseException;

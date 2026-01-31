@@ -1,10 +1,10 @@
-package cn.ariven.openaimpbackend.dto.request;
+package cn.ariven.openaimpbackend.dto.request.common;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class RequestAtisInfo {
+public class RequestMetar {
     @NotBlank(message = "需要机场ICAO")
-    private String icao;
+    private String icao;//机场ICAO
 }

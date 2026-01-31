@@ -1,7 +1,7 @@
 package cn.ariven.openaimpbackend.controller;
 
 import cn.ariven.openaimpbackend.common.Result;
-import cn.ariven.openaimpbackend.dto.response.ResponseCaptcha;
+import cn.ariven.openaimpbackend.dto.response.captcha.ResponseCaptcha;
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.LineCaptcha;
 import cn.hutool.core.lang.UUID;

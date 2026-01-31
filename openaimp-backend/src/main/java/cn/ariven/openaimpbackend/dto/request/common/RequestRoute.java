@@ -1,4 +1,4 @@
-package cn.ariven.openaimpbackend.dto.request;
+package cn.ariven.openaimpbackend.dto.request.common;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

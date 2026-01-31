@@ -2,9 +2,9 @@ package cn.ariven.openaimpbackend.service.impl;
 
 import cn.ariven.openaimpbackend.common.DatabaseManager;
 import cn.ariven.openaimpbackend.common.Result;
-import cn.ariven.openaimpbackend.dto.request.RequestRoute;
+import cn.ariven.openaimpbackend.dto.request.common.RequestRoute;
 import cn.ariven.openaimpbackend.service.RouteService;
-import cn.ariven.openaimpbackend.dto.response.ResponseFlightRoute;
+import cn.ariven.openaimpbackend.dto.response.common.ResponseFlightRoute;
 import cn.ariven.openaimpbackend.util.GeoUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;

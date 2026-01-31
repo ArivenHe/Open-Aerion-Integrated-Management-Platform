@@ -1,9 +1,11 @@
 package cn.ariven.openaimpbackend.service.impl;
 
-import cn.ariven.openaimpbackend.dto.request.RequestLogin;
-import cn.ariven.openaimpbackend.dto.request.RequestRegister;
-import cn.ariven.openaimpbackend.dto.request.RequestResetPassword;
+import cn.ariven.openaimpbackend.dto.request.auth.RequestLogin;
+import cn.ariven.openaimpbackend.dto.request.auth.RequestRegister;
+import cn.ariven.openaimpbackend.dto.request.auth.RequestResetPassword;
+import cn.ariven.openaimpbackend.pojo.Role;
 import cn.ariven.openaimpbackend.pojo.User;
+import cn.ariven.openaimpbackend.repository.RoleRepository;
 import cn.ariven.openaimpbackend.repository.UserRepository;
 import cn.ariven.openaimpbackend.service.UserService;
 import cn.ariven.openaimpbackend.util.CodeUtil;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -25,6 +28,7 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final StringRedisTemplate redisTemplate;
     private final JavaMailSender mailSender;
 
@@ -51,6 +55,11 @@ public class UserServiceImpl implements UserService {
         user.setPassword(PasswordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
         user.setQq(request.getQq());
+        Role defaultRole = roleRepository.findByName("user");
+        if (defaultRole == null) {
+            throw new RuntimeException("Default role not found");
+        }
+        user.setRoles(List.of(defaultRole));
 
         userRepository.save(user);
     }

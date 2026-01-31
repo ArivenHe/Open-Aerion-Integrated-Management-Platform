@@ -1,11 +1,11 @@
 package cn.ariven.openaimpbackend.service.impl;
 
 import cn.ariven.openaimpbackend.common.Result;
-import cn.ariven.openaimpbackend.dto.request.RequestAtisInfo;
-import cn.ariven.openaimpbackend.dto.request.RequestMetar;
-import cn.ariven.openaimpbackend.dto.response.ResponseAtisInfo;
+import cn.ariven.openaimpbackend.dto.request.common.RequestAtisInfo;
+import cn.ariven.openaimpbackend.dto.request.common.RequestMetar;
+import cn.ariven.openaimpbackend.dto.response.common.ResponseAtisInfo;
 import cn.ariven.openaimpbackend.vo.VOAtisInfo;
-import cn.ariven.openaimpbackend.dto.response.ResponseMetar;
+import cn.ariven.openaimpbackend.dto.response.common.ResponseMetar;
 import cn.ariven.openaimpbackend.service.WeatherService;
 import io.github.mivek.enums.CloudQuantity;
 import io.github.mivek.enums.CloudType;

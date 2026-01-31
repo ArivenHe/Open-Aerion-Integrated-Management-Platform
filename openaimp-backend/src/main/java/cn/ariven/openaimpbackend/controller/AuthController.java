@@ -1,10 +1,10 @@
 package cn.ariven.openaimpbackend.controller;
 
 import cn.ariven.openaimpbackend.common.Result;
-import cn.ariven.openaimpbackend.dto.request.RequestForgotPassword;
-import cn.ariven.openaimpbackend.dto.request.RequestLogin;
-import cn.ariven.openaimpbackend.dto.request.RequestRegister;
-import cn.ariven.openaimpbackend.dto.request.RequestResetPassword;
+import cn.ariven.openaimpbackend.dto.request.auth.RequestForgotPassword;
+import cn.ariven.openaimpbackend.dto.request.auth.RequestLogin;
+import cn.ariven.openaimpbackend.dto.request.auth.RequestRegister;
+import cn.ariven.openaimpbackend.dto.request.auth.RequestResetPassword;
 import cn.ariven.openaimpbackend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

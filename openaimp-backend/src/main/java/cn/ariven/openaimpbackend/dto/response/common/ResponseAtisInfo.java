@@ -1,4 +1,4 @@
-package cn.ariven.openaimpbackend.dto.response;
+package cn.ariven.openaimpbackend.dto.response.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

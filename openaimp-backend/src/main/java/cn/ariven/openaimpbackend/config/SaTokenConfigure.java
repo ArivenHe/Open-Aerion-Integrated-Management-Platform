@@ -15,12 +15,12 @@ public class SaTokenConfigure implements WebMvcConfigurer {
             // 正确配置：拦截所有路径，但排除 /Auth 开头的请求
             SaRouter
                     .match("/**")                   // 拦截所有路径
-                    .notMatch("/auth/**")           // 排除 /auth 下的所有路径
+                    .notMatch("/auth/**")
                     .notMatch("/captcha/**")
                     .notMatch("/public/**")
                     .notMatch("/image")
                     .notMatch("/Map/**")
-                    .check(r -> StpUtil.checkLogin()); // 登录验证
-        })).addPathPatterns("/**");             // 注册拦截器作用于所有路径
+                    .check(r -> StpUtil.checkLogin());
+        })).addPathPatterns("/**");
     }
 }
