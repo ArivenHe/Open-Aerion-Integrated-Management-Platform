@@ -3,13 +3,10 @@ package fsd
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/renorris/openfsd/db"
 	"log/slog"
 	"maps"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -25,41 +22,9 @@ func (s *Server) runServiceHTTP(ctx context.Context) {
 func (s *Server) setupRoutes() (e *gin.Engine) {
 	e = gin.New()
 
-	// Verify administrator service JWT
-	e.Use(s.authMiddleware)
 	e.GET("/online_users", s.handleGetOnlineUsers)
-	e.POST("/kick_user", s.handleKickUser)
 
 	return
-}
-
-func (s *Server) authMiddleware(c *gin.Context) {
-	authHeader, found := strings.CutPrefix(c.GetHeader("Authorization"), "Bearer ")
-	if !found {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	jwtSecret, err := s.dbRepo.ConfigRepo.Get(db.ConfigJwtSecretKey)
-	if err != nil {
-		slog.Error(err.Error())
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	accessToken, err := ParseJwtToken(authHeader, []byte(jwtSecret))
-	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	claims := accessToken.CustomClaims()
-	if claims.TokenType != "fsd_service" || claims.NetworkRating < NetworkRatingAdministator {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
-	}
-
-	c.Next()
 }
 
 type OnlineUserGeneralData struct {
@@ -147,30 +112,4 @@ func (s *Server) handleGetOnlineUsers(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "application/json")
 	c.Writer.WriteHeader(http.StatusOK)
 	json.NewEncoder(c.Writer).Encode(&resData)
-}
-
-func (s *Server) handleKickUser(c *gin.Context) {
-	type RequestBody struct {
-		Callsign string `json:"callsign" binding:"required"`
-	}
-
-	var reqBody RequestBody
-	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-	}
-
-	client, err := s.postOffice.find(reqBody.Callsign)
-	if err != nil {
-		if !errors.Is(err, ErrCallsignDoesNotExist) {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		c.AbortWithStatus(http.StatusNotFound)
-		return
-	}
-
-	// Cancelling the context will cause the client's event loop to close
-	client.cancelCtx()
-
-	c.AbortWithStatus(http.StatusNoContent)
 }

@@ -18,6 +18,7 @@ public class SaTokenConfigure implements WebMvcConfigurer {
                     .notMatch("/auth/**")
                     .notMatch("/captcha/**")
                     .notMatch("/public/**")
+                    .notMatch("/fsd/**")
                     .notMatch("/image")
                     .notMatch("/Map/**")
                     .check(r -> StpUtil.checkLogin());

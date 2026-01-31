@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/renorris/openfsd/db"
+	"github.com/golang-jwt/jwt/v5"
 	"io"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -246,6 +248,80 @@ func readLoginPackets(conn net.Conn, scanner *bufio.Scanner) (data loginData, to
 	return
 }
 
+type authAPIResponse struct {
+	Success  bool   `json:"success"`
+	Token    string `json:"token"`
+	ErrorMsg string `json:"error_msg"`
+}
+
+type authAPIClaims struct {
+	jwt.RegisteredClaims
+	ControllerRating int `json:"controller_rating"`
+	PilotRating      int `json:"pilot_rating"`
+}
+
+func parseAuthAPIClaims(rawToken string) (claims *authAPIClaims, err error) {
+	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
+	claims = &authAPIClaims{}
+	if _, _, err = parser.ParseUnverified(rawToken, claims); err != nil {
+		return
+	}
+	now := time.Now()
+	if claims.ExpiresAt != nil && claims.ExpiresAt.Before(now) {
+		err = errors.New("token expired")
+		return
+	}
+	if claims.NotBefore != nil && claims.NotBefore.After(now) {
+		err = errors.New("token not valid yet")
+		return
+	}
+	if claims.Subject == "" {
+		err = errors.New("missing subject")
+		return
+	}
+	return
+}
+
+func (s *Server) authenticateWithAPI(cid int, password string) (claims *authAPIClaims, err error) {
+	reqBody := map[string]string{
+		"cid":      strconv.Itoa(cid),
+		"password": password,
+	}
+	bodyBytes, err := json.Marshal(&reqBody)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", s.cfg.AuthAPIEndpoint, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+
+	var respBody authAPIResponse
+	if err = json.NewDecoder(res.Body).Decode(&respBody); err != nil {
+		return
+	}
+
+	if res.StatusCode != http.StatusOK || !respBody.Success || respBody.Token == "" {
+		if respBody.ErrorMsg != "" {
+			err = errors.New(respBody.ErrorMsg)
+			return
+		}
+		err = errors.New("authentication failed")
+		return
+	}
+
+	claims, err = parseAuthAPIClaims(respBody.Token)
+	return
+}
+
 func (s *Server) attemptAuthentication(client *Client, token string) (err error) {
 	// Check vatsim auth compatibility
 	if client.clientChallenge != "" {
@@ -263,32 +339,22 @@ func (s *Server) attemptAuthentication(client *Client, token string) (err error)
 
 	// Check if the provided token is actually a JWT
 	if mostLikelyJwt([]byte(token)) {
-		var jwtSecret string
-		if jwtSecret, err = s.dbRepo.ConfigRepo.Get(db.ConfigJwtSecretKey); err != nil {
-			return
-		}
-
-		var jwtToken *JwtToken
-		if jwtToken, err = ParseJwtToken(token, []byte(jwtSecret)); err != nil {
+		var apiClaims *authAPIClaims
+		if apiClaims, err = parseAuthAPIClaims(token); err != nil {
 			err = ErrInvalidAddPacket
 			sendError(client.conn, InvalidLogonError, invalidLogonMsg)
 			return
 		}
-
-		claims := jwtToken.CustomClaims()
-
-		if claims.TokenType != "fsd" {
-			err = ErrInvalidAddPacket
-			sendError(client.conn, InvalidLogonError, invalidLogonMsg)
-			return
-		}
-
-		if client.cid != claims.CID {
+		if apiClaims.Subject != strconv.Itoa(client.cid) {
 			err = ErrInvalidAddPacket
 			sendError(client.conn, RequestedLevelTooHighError, invalidLogonMsg)
 			return
 		}
-		if client.networkRating > claims.NetworkRating {
+		maxRating := apiClaims.ControllerRating
+		if apiClaims.PilotRating > maxRating {
+			maxRating = apiClaims.PilotRating
+		}
+		if client.networkRating > NetworkRating(maxRating) {
 			err = ErrInvalidAddPacket
 			sendError(client.conn, RequestedLevelTooHighError, "Requested level too high")
 			return
@@ -298,31 +364,23 @@ func (s *Server) attemptAuthentication(client *Client, token string) (err error)
 			sendError(client.conn, CertificateSuspendedError, "Certificate inactive or suspended")
 			return
 		}
-		client.maxNetworkRating = claims.NetworkRating
+		client.maxNetworkRating = NetworkRating(maxRating)
 
 		return
 	}
 
-	// Otherwise, treat it as a plaintext password
-	password := token
-
-	// Attempt to fetch user
-	user, err := s.dbRepo.UserRepo.GetUserByCID(client.cid)
-	if err != nil {
+	var apiClaims *authAPIClaims
+	if apiClaims, err = s.authenticateWithAPI(client.cid, token); err != nil {
 		err = ErrInvalidAddPacket
 		sendError(client.conn, InvalidLogonError, invalidLogonMsg)
 		return
 	}
 
-	// Verify password hash
-	if !s.dbRepo.UserRepo.VerifyPasswordHash(password, user.Password) {
-		err = ErrInvalidAddPacket
-		sendError(client.conn, InvalidLogonError, invalidLogonMsg)
-		return
+	maxRating := apiClaims.ControllerRating
+	if apiClaims.PilotRating > maxRating {
+		maxRating = apiClaims.PilotRating
 	}
-
-	// Verify network rating
-	if client.networkRating > NetworkRating(user.NetworkRating) {
+	if client.networkRating > NetworkRating(maxRating) {
 		err = ErrInvalidAddPacket
 		sendError(client.conn, RequestedLevelTooHighError, "Requested level too high")
 		return
@@ -332,7 +390,7 @@ func (s *Server) attemptAuthentication(client *Client, token string) (err error)
 		sendError(client.conn, CertificateSuspendedError, "Certificate inactive or suspended")
 		return
 	}
-	client.maxNetworkRating = NetworkRating(user.NetworkRating)
+	client.maxNetworkRating = NetworkRating(maxRating)
 
 	return
 }
@@ -377,16 +435,13 @@ func (s *Server) broadcastDisconnectPacket(client *Client) {
 }
 
 func (s *Server) sendMotd(client *Client) (err error) {
-	welcomeMsg := db.GetWelcomeMessage(&s.dbRepo.ConfigRepo)
-	if welcomeMsg != "" {
-		lines := strings.Split(welcomeMsg, "\n")
-		for i := range lines {
-			if err = s.sendServerTextMessage(client, lines[i]); err != nil {
-				return
-			}
-		}
-	} else {
-		if err = s.sendServerTextMessage(client, "Connected to openfsd"); err != nil {
+	welcomeMsg := strings.TrimSpace(s.cfg.WelcomeMessage)
+	if welcomeMsg == "" {
+		welcomeMsg = "Connected to openfsd"
+	}
+	lines := strings.Split(welcomeMsg, "\n")
+	for i := range lines {
+		if err = s.sendServerTextMessage(client, lines[i]); err != nil {
 			return
 		}
 	}

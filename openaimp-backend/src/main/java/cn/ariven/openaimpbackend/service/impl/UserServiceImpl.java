@@ -1,5 +1,6 @@
 package cn.ariven.openaimpbackend.service.impl;
 
+import cn.ariven.openaimpbackend.dto.request.auth.RequestFsdLogin;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestLogin;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestRegister;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestResetPassword;
@@ -37,6 +38,7 @@ public class UserServiceImpl implements UserService {
 
     private static final String RESET_CODE_PREFIX = "reset_code:";
     private static final String CAPTCHA_PREFIX = "captcha:";
+    private static final int OBSERVER_RATING = 1;
 
     @Override
     @Transactional
@@ -86,6 +88,32 @@ public class UserServiceImpl implements UserService {
         return StpUtil.getTokenValue();
     }
 
+    @Override
+    public String fsdLogin(RequestFsdLogin request) {
+        Optional<User> userOpt = userRepository.findByCallsign(request.getCid());
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("CID not found");
+        }
+
+        User user = userOpt.get();
+        if (!PasswordEncoder.compare(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid password");
+        }
+
+        int maxRating = user.getAtcRating() == null ? 0 : user.getAtcRating();
+        int networkRating = request.getNetworkRating();
+
+        if (networkRating < OBSERVER_RATING) {
+            throw new RuntimeException("Network rating too low");
+        }
+        if (networkRating > maxRating) {
+            throw new RuntimeException("Network rating too high");
+        }
+
+        StpUtil.login(user.getId());
+        return StpUtil.getTokenValue();
+    }
+
     private void validateCaptcha(String key, String code) {
         String cachedCode = redisTemplate.opsForValue().get(CAPTCHA_PREFIX + key);
         if (cachedCode == null || !cachedCode.equalsIgnoreCase(code)) {
@@ -128,4 +156,5 @@ public class UserServiceImpl implements UserService {
         
         redisTemplate.delete(RESET_CODE_PREFIX + request.getEmail());
     }
+
 }

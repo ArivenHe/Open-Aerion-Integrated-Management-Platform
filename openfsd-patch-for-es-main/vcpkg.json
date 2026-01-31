@@ -1,0 +1,6 @@
+{
+  "dependencies" : [ {
+    "name" : "fmt",
+    "version>=" : "12.1.0"
+  } ]
+}

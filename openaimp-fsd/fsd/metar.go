@@ -86,7 +86,7 @@ func buildMetarResponsePacket(callsign string, metar []byte) string {
 	packet := strings.Builder{}
 	packet.WriteString("$ARSERVER:")
 	packet.WriteString(callsign)
-	packet.WriteString(":METAR:")
+	packet.WriteString(":")
 	packet.Write(metar)
 	packet.WriteString("\r\n")
 	return packet.String()

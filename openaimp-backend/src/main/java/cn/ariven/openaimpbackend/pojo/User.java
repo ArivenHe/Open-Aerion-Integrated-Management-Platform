@@ -23,6 +23,8 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    private Integer atcRating=1;
+
     @Column(nullable = false, unique = true)
     private String email;
 

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/renorris/openfsd/db"
 	"github.com/renorris/openfsd/fsd"
 	"go.uber.org/atomic"
 	"io"
@@ -225,25 +224,7 @@ func (s *Server) generateServersTxt() (txt string, err error) {
 }
 
 func (s *Server) getFsdServerInfo() (serverIdent string, serverHostname string, serverLocation string, err error) {
-	serverIdent, err = s.dbRepo.ConfigRepo.Get(db.ConfigFsdServerIdent)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-
-	serverHostname, err = s.dbRepo.ConfigRepo.Get(db.ConfigFsdServerHostname)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-
-	serverLocation, err = s.dbRepo.ConfigRepo.Get(db.ConfigFsdServerLocation)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-
-	return
+	return s.cfg.FsdServerIdent, s.cfg.FsdServerHostname, s.cfg.FsdServerLocation, nil
 }
 
 func writePlaintext500Error(c *gin.Context, msg string) {
@@ -253,14 +234,10 @@ func writePlaintext500Error(c *gin.Context, msg string) {
 }
 
 func (s *Server) getBaseURLOrErr(c *gin.Context) (baseURL string, ok bool) {
-	baseURL, err := s.dbRepo.ConfigRepo.Get(db.ConfigApiServerBaseURL)
-	if err != nil {
+	baseURL = strings.TrimSpace(s.cfg.ApiServerBaseURL)
+	if baseURL == "" {
 		c.Writer.WriteHeader(http.StatusInternalServerError)
-		if !errors.Is(err, db.ErrConfigKeyNotFound) {
-			slog.Error(err.Error())
-			return
-		}
-		errMsg := "API server base URL is not set in the config"
+		errMsg := "API server base URL is not set"
 		slog.Error(errMsg)
 		c.Writer.WriteString(errMsg)
 		return
@@ -416,32 +393,11 @@ func (s *Server) generateDatafeed() (feed *DatafeedCache, err error) {
 //
 // method sets the HTTP method, path is the relative HTTP path (e.g. /online_users), and body is an optional request body.
 func (s *Server) makeFsdHttpServiceHttpRequest(method string, path string, body io.Reader) (req *http.Request, err error) {
-	// Generate JWT bearer token
-	customFields := fsd.CustomFields{
-		TokenType:     "fsd_service",
-		CID:           -1,
-		NetworkRating: fsd.NetworkRatingAdministator,
-	}
-	token, err := fsd.MakeJwtToken(&customFields, 15*time.Minute)
-	if err != nil {
-		return
-	}
-	secretKey, err := s.dbRepo.ConfigRepo.Get(db.ConfigJwtSecretKey)
-	if err != nil {
-		return
-	}
-	tokenStr, err := token.SignedString([]byte(secretKey))
-	if err != nil {
-		return
-	}
-
 	url := s.cfg.FsdHttpServiceAddress + path
 	req, err = http.NewRequest(method, url, body)
 	if err != nil {
 		return
 	}
-
-	req.Header.Set("Authorization", "Bearer "+tokenStr)
 
 	return
 }
