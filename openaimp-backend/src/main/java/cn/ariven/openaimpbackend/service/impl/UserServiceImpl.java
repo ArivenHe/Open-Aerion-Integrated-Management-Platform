@@ -111,31 +111,6 @@ public class UserServiceImpl implements UserService {
         return StpUtil.getTokenValue();
     }
 
-    @Override
-    public String fsdLogin(RequestFsdLogin request) {
-        Optional<User> userOpt = userRepository.findById(Long.valueOf(request.getCid()));
-        if (userOpt.isEmpty()) {
-            throw new RuntimeException("CID not found");
-        }
-
-        User user = userOpt.get();
-        if (!PasswordEncoder.compare(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid password");
-        }
-
-        int maxRating = user.getAtcRating() == null ? 0 : user.getAtcRating();
-        int networkRating = request.getNetworkRating();
-
-        if (networkRating < OBSERVER_RATING) {
-            throw new RuntimeException("Network rating too low");
-        }
-        if (networkRating > maxRating) {
-            throw new RuntimeException("Network rating too high");
-        }
-
-        StpUtil.login(user.getId());
-        return StpUtil.getTokenValue();
-    }
 
     private void validateCaptcha(String key, String code) {
         String cachedCode = redisTemplate.opsForValue().get(CAPTCHA_PREFIX + key);
