@@ -59,7 +59,11 @@ sa-token:
 url:
   whazzup: https://data.vatsim.net/v3/vatsim-data.json
 
-node:
-  # TODO: Update these paths for your environment
-  path: /usr/local/bin/node
-  qqBotscript: src/main/resources/botServer.js
+openfsd:
+  api:
+    base-url: http://localhost:8000
+  admin:
+    cid: 1
+    password: ab321818
+
+

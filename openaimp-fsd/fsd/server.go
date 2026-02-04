@@ -2,8 +2,13 @@ package fsd
 
 import (
 	"context"
+	"crypto/rand"
+	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/renorris/openfsd/db"
+	"io"
 	"log/slog"
 	"net"
 	"sync"
@@ -13,16 +18,18 @@ type Server struct {
 	cfg          *ServerConfig
 	postOffice   *postOffice
 	metarService *metarService
+	dbRepo       *db.Repositories
 }
 
 // NewServer creates a new Server instance.
 //
 // See NewDefaultServer to create a server using default settings obtained via environment variables.
-func NewServer(cfg *ServerConfig, numMetarWorkers int) (server *Server, err error) {
+func NewServer(cfg *ServerConfig, dbRepo *db.Repositories, numMetarWorkers int) (server *Server, err error) {
 	server = &Server{
 		cfg:          cfg,
 		postOffice:   newPostOffice(),
 		metarService: newMetarService(numMetarWorkers),
+		dbRepo:       dbRepo,
 	}
 	return
 }
@@ -34,9 +41,87 @@ func NewDefaultServer(ctx context.Context) (server *Server, err error) {
 		return
 	}
 
-	slog.Info(fmt.Sprintf("auth endpoint %s", config.AuthAPIEndpoint))
+	slog.Info(fmt.Sprintf("using %s", config.DatabaseDriver))
 
-	if server, err = NewServer(config, config.NumMetarWorkers); err != nil {
+	slog.Debug("connecting to SQL")
+	sqlDb, err := sql.Open(config.DatabaseDriver, config.DatabaseSourceName)
+	if err != nil {
+		return
+	}
+	slog.Debug("SQL opened")
+
+	if err = sqlDb.PingContext(ctx); err != nil {
+		return
+	}
+
+	sqlDb.SetMaxOpenConns(config.DatabaseMaxConns)
+
+	if config.DatabaseAutoMigrate {
+		slog.Debug("automatically migrating database")
+		if err = db.Migrate(sqlDb); err != nil {
+			return
+		}
+		slog.Debug("migrate OK")
+	}
+
+	dbRepo, err := db.NewRepositories(sqlDb)
+	if err != nil {
+		return
+	}
+
+	// Generate a default admin user if CID 1 isn't taken
+	if _, err = dbRepo.UserRepo.GetUserByCID(1); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return
+		}
+		err = nil
+
+		slog.Debug("no user with CID = 1 found, creating default admin user")
+		var user *db.User
+		if user, err = generateDefaultAdminUser(dbRepo); err != nil {
+			return
+		}
+		slog.Info(fmt.Sprintf(
+			`
+
+	DEFAULT ADMINISTRATOR CREDENTIALS:
+	CID:      %d
+	Password: %s
+
+`,
+			user.CID,
+			user.Password,
+		))
+	}
+
+	// Ensure default configuration is written to persistent storage
+	slog.Debug("initializing default config")
+	if err = db.InitDefaultConfig(&dbRepo.ConfigRepo); err != nil {
+		return
+	}
+	slog.Debug("config OK")
+
+	if server, err = NewServer(config, dbRepo, config.NumMetarWorkers); err != nil {
+		return
+	}
+
+	return
+}
+
+func generateDefaultAdminUser(dbRepo *db.Repositories) (user *db.User, err error) {
+	passwordBuf := make([]byte, 8)
+	if _, err = io.ReadFull(rand.Reader, passwordBuf); err != nil {
+		return
+	}
+	password := hex.EncodeToString(passwordBuf)
+
+	user = &db.User{
+		Password:      password,
+		FirstName:     strPtr("Default Administrator"),
+		NetworkRating: int(NetworkRatingAdministator),
+	}
+
+	if err = dbRepo.UserRepo.CreateUser(user); err != nil {
 		return
 	}
 

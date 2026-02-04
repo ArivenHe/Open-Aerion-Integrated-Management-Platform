@@ -4,15 +4,20 @@ import cn.ariven.openaimpbackend.dto.request.auth.RequestFsdLogin;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestLogin;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestRegister;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestResetPassword;
+import cn.ariven.openaimpbackend.dto.request.openfsd.CreateUserRequest;
+import cn.ariven.openaimpbackend.dto.response.openfsd.UserInfo;
 import cn.ariven.openaimpbackend.pojo.Role;
 import cn.ariven.openaimpbackend.pojo.User;
 import cn.ariven.openaimpbackend.repository.RoleRepository;
 import cn.ariven.openaimpbackend.repository.UserRepository;
+import cn.ariven.openaimpbackend.service.CommonService;
+import cn.ariven.openaimpbackend.service.OpenFsdApiService;
 import cn.ariven.openaimpbackend.service.UserService;
 import cn.ariven.openaimpbackend.util.CodeUtil;
 import cn.ariven.openaimpbackend.util.PasswordEncoder;
 import cn.dev33.satoken.stp.StpUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -24,6 +29,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -32,6 +38,8 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final StringRedisTemplate redisTemplate;
     private final JavaMailSender mailSender;
+    private final OpenFsdApiService openFsdApiService;
+    private final CommonService commonService;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
@@ -63,7 +71,22 @@ public class UserServiceImpl implements UserService {
         }
         user.setRoles(List.of(defaultRole));
 
-        userRepository.save(user);
+        //注册FSD用户
+        CreateUserRequest createUserRequest = CreateUserRequest.builder()
+                .password(user.getPassword())
+                .firstName(user.getCallsign())
+                .lastName(user.getEmail())
+                .networkRating(1)
+                .build();
+        UserInfo userInfo= openFsdApiService.createUser(createUserRequest, commonService.getFsdAccessTokenBySystemAdmin());
+        if (userInfo!=null){
+            log.info("FSD用户注册成功，开始注册飞控用户");
+            userRepository.save(user);
+            log.info("注册完成");
+        }else {
+            log.info("FSD用户注册失败");
+        }
+
     }
 
     @Override
@@ -90,7 +113,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String fsdLogin(RequestFsdLogin request) {
-        Optional<User> userOpt = userRepository.findByCallsign(request.getCid());
+        Optional<User> userOpt = userRepository.findById(Long.valueOf(request.getCid()));
         if (userOpt.isEmpty()) {
             throw new RuntimeException("CID not found");
         }
@@ -125,7 +148,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void sendForgotPasswordCode(String email) {
         if (!userRepository.existsByEmail(email)) {
-             throw new RuntimeException("Email not found");
+            throw new RuntimeException("Email not found");
         }
 
         String code = CodeUtil.generateCode(6);
@@ -150,10 +173,10 @@ public class UserServiceImpl implements UserService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         user.setPassword(PasswordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        
+
         redisTemplate.delete(RESET_CODE_PREFIX + request.getEmail());
     }
 
