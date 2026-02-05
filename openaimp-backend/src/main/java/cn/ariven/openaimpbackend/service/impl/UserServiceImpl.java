@@ -1,6 +1,5 @@
 package cn.ariven.openaimpbackend.service.impl;
 
-import cn.ariven.openaimpbackend.dto.request.auth.RequestFsdLogin;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestLogin;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestRegister;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestResetPassword;
@@ -45,6 +44,7 @@ public class UserServiceImpl implements UserService {
     private String fromEmail;
 
     private static final String RESET_CODE_PREFIX = "reset_code:";
+    private static final String REGISTER_CODE_PREFIX = "register_code:";
     private static final String CAPTCHA_PREFIX = "captcha:";
     private static final int OBSERVER_RATING = 1;
 
@@ -52,6 +52,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void register(RequestRegister request) {
         validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode());
+        validateRegisterCode(request.getEmail(), request.getEmailCode());
 
         if (userRepository.existsByCallsign(request.getCallsign())) {
             throw new RuntimeException("Callsign already exists");
@@ -76,14 +77,16 @@ public class UserServiceImpl implements UserService {
                 .password(user.getPassword())
                 .firstName(user.getCallsign())
                 .lastName(user.getEmail())
-                .networkRating(1)
+                .networkRating(OBSERVER_RATING)
                 .build();
-        UserInfo userInfo= openFsdApiService.createUser(createUserRequest, commonService.getFsdAccessTokenBySystemAdmin());
-        if (userInfo!=null){
+
+
+        UserInfo userInfo = openFsdApiService.createUser(createUserRequest, commonService.getFsdAccessTokenBySystemAdmin());
+        if (userInfo != null) {
             log.info("FSD用户注册成功，开始注册飞控用户");
             userRepository.save(user);
             log.info("注册完成");
-        }else {
+        } else {
             log.info("FSD用户注册失败");
         }
 
@@ -118,6 +121,32 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Invalid or expired captcha");
         }
         redisTemplate.delete(CAPTCHA_PREFIX + key);
+    }
+
+    private void validateRegisterCode(String email, String code) {
+        String cachedCode = redisTemplate.opsForValue().get(REGISTER_CODE_PREFIX + email);
+        if (cachedCode == null || !cachedCode.equals(code)) {
+            throw new RuntimeException("Invalid or expired email code");
+        }
+        redisTemplate.delete(REGISTER_CODE_PREFIX + email);
+    }
+
+    @Override
+    public void sendRegisterCode(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        String code = CodeUtil.generateCode(6);
+        redisTemplate.opsForValue().set(REGISTER_CODE_PREFIX + email, code, Duration.ofMinutes(15));
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(email);
+        message.setSubject("Register Verification Code");
+        message.setText("Your verification code is: " + code + "\nValid for 15 minutes.");
+
+        mailSender.send(message);
     }
 
     @Override

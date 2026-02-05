@@ -23,4 +23,7 @@ public class RequestRegister {
 
     @NotBlank(message = "Captcha code is required")
     private String captchaCode;
+
+    @NotBlank(message = "Email code is required")
+    private String emailCode;
 }

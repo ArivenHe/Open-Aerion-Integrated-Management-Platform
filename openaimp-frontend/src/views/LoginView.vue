@@ -1,7 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { fetchCaptcha, login } from '@/api/auth'
 
 const isDark = ref(false)
+const router = useRouter()
+const account = ref('')
+const password = ref('')
+const captchaKey = ref('')
+const captchaCode = ref('')
+const captchaImage = ref('')
+const message = ref('')
+const loading = ref(false)
 
 const toggleDark = () => {
   isDark.value = !isDark.value
@@ -12,8 +22,40 @@ const toggleDark = () => {
   }
 }
 
+const loadCaptcha = async () => {
+  try {
+    const res = await fetchCaptcha()
+    captchaKey.value = res.data.key
+    captchaImage.value = res.data.imageBase64
+  } catch (error) {
+    message.value = error.message
+  }
+}
+
+const handleLogin = async () => {
+  if (loading.value) return
+  loading.value = true
+  message.value = ''
+  try {
+    const res = await login({
+      account: account.value,
+      password: password.value,
+      captchaKey: captchaKey.value,
+      captchaCode: captchaCode.value,
+    })
+    localStorage.setItem('token', res.data)
+    await router.push('/')
+  } catch (error) {
+    message.value = error.message
+    await loadCaptcha()
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark')
+  loadCaptcha()
 })
 </script>
 
@@ -69,19 +111,19 @@ onMounted(() => {
           </p>
         </div>
 
-        <form class="mt-8 space-y-6" action="#" method="POST">
+        <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
           <div class="space-y-5">
             <div>
-              <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">电子邮箱</label>
+              <label for="account" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">账号或邮箱</label>
               <div class="relative">
                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                     </svg>
                  </div>
-                 <input id="email" name="email" type="email" autocomplete="email" required 
+                 <input id="account" v-model="account" name="account" type="text" autocomplete="username" required 
                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                   placeholder="name@example.com">
+                   placeholder="callSign 或 name@example.com">
               </div>
             </div>
 
@@ -95,9 +137,28 @@ onMounted(() => {
                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                  </div>
-                 <input id="password" name="password" type="password" autocomplete="current-password" required 
+                <input id="password" v-model="password" name="password" type="password" autocomplete="current-password" required 
                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
                    placeholder="••••••••">
+              </div>
+            </div>
+
+            <div>
+              <label for="captcha" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">图形验证码</label>
+              <div class="flex gap-2">
+                <div class="relative flex-1">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <input id="captcha" v-model="captchaCode" name="captcha" type="text" required 
+                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
+                    placeholder="输入验证码">
+                </div>
+                <button type="button" @click="loadCaptcha" class="w-24 h-11 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300 dark:border-gray-600">
+                  <img v-if="captchaImage" :src="captchaImage" class="w-full h-full object-cover" />
+                </button>
               </div>
             </div>
           </div>
@@ -118,9 +179,13 @@ onMounted(() => {
           </div>
 
           <div>
-            <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 transform hover:-translate-y-0.5">
-              登录
+            <button type="submit" :disabled="loading" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed">
+              {{ loading ? '登录中...' : '登录' }}
             </button>
+          </div>
+
+          <div v-if="message" class="text-sm text-red-600 dark:text-red-400 text-center">
+            {{ message }}
           </div>
 
           <div class="text-center text-sm mt-6">

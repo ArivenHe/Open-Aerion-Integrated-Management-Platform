@@ -8,6 +8,7 @@ import cn.ariven.openaimpbackend.dto.request.auth.RequestResetPassword;
 public interface UserService {
     void register(RequestRegister request);
     String login(RequestLogin request);
+    void sendRegisterCode(String email);
     void sendForgotPasswordCode(String email);
     void resetPassword(RequestResetPassword request);
 }

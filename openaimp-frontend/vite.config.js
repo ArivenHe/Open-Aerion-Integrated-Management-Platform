@@ -21,8 +21,16 @@ export default defineConfig({
     },
     server: {
         proxy: {
+            '/auth': {
+                target: 'http://localhost:6067',
+                changeOrigin: true,
+            },
+            '/captcha': {
+                target: 'http://localhost:6067',
+                changeOrigin: true,
+            },
             '/api': {
-                target: 'http://localhost:8000',
+                target: 'http://localhost:6067',
                 changeOrigin: true,
             }
         }

@@ -1,7 +1,21 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { fetchCaptcha, register, sendRegisterCode } from '@/api/auth'
 
 const isDark = ref(false)
+const router = useRouter()
+const callsign = ref('')
+const email = ref('')
+const password = ref('')
+const passwordConfirm = ref('')
+const captchaKey = ref('')
+const captchaCode = ref('')
+const captchaImage = ref('')
+const emailCode = ref('')
+const loading = ref(false)
+const codeSending = ref(false)
+const messageModal = ref({ show: false, text: '', type: 'success', nextRoute: '' })
 
 const toggleDark = () => {
   isDark.value = !isDark.value
@@ -12,8 +26,73 @@ const toggleDark = () => {
   }
 }
 
+const showMessage = (text, type = 'success', nextRoute = '') => {
+  messageModal.value = { show: true, text, type, nextRoute }
+}
+
+const closeMessage = async () => {
+  const nextRoute = messageModal.value.nextRoute
+  messageModal.value = { show: false, text: '', type: 'success', nextRoute: '' }
+  if (nextRoute) {
+    await router.push(nextRoute)
+  }
+}
+
+const loadCaptcha = async () => {
+  try {
+    const res = await fetchCaptcha()
+    captchaKey.value = res.data.key
+    captchaImage.value = `data:image/png;base64,${res.data.imageBase64}`
+  } catch (error) {
+    showMessage(error.message, 'error')
+  }
+}
+
+const handleSendCode = async () => {
+  if (codeSending.value) return
+  if (!email.value) {
+    showMessage('请先填写邮箱', 'error')
+    return
+  }
+  codeSending.value = true
+  try {
+    await sendRegisterCode(email.value)
+    showMessage('验证码已发送，请查收邮箱', 'success')
+  } catch (error) {
+    showMessage(error.message, 'error')
+  } finally {
+    codeSending.value = false
+  }
+}
+
+const handleRegister = async () => {
+  if (loading.value) return
+  if (password.value !== passwordConfirm.value) {
+    showMessage('两次密码输入不一致', 'error')
+    return
+  }
+  loading.value = true
+  try {
+    await register({
+      callsign: callsign.value,
+      email: email.value,
+      password: password.value,
+      captchaKey: captchaKey.value,
+      captchaCode: captchaCode.value,
+      emailCode: emailCode.value,
+    })
+    showMessage('注册成功，请前往登录', 'success', '/login')
+  } catch (error) {
+    showMessage(error.message, 'error')
+    await loadCaptcha()
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark')
+  loadCaptcha()
 })
 </script>
 
@@ -92,7 +171,7 @@ onMounted(() => {
           </p>
         </div>
 
-        <form class="mt-8 space-y-6" action="#" method="POST">
+        <form class="mt-8 space-y-6" @submit.prevent="handleRegister">
           <div class="space-y-5">
             <div>
               <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">用户名</label>
@@ -102,7 +181,7 @@ onMounted(() => {
                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                  </div>
-                 <input id="username" name="username" type="text" required 
+                 <input id="username" v-model="callsign" name="username" type="text" required 
                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
                    placeholder="Your username">
               </div>
@@ -116,7 +195,7 @@ onMounted(() => {
                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                     </svg>
                  </div>
-                 <input id="email" name="email" type="email" autocomplete="email" required 
+                 <input id="email" v-model="email" name="email" type="email" autocomplete="email" required 
                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
                    placeholder="name@example.com">
               </div>
@@ -131,7 +210,7 @@ onMounted(() => {
                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                      </div>
-                     <input id="password" name="password" type="password" autocomplete="new-password" required 
+                     <input id="password" v-model="password" name="password" type="password" autocomplete="new-password" required 
                        class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
                        placeholder="••••••••">
                   </div>
@@ -144,7 +223,7 @@ onMounted(() => {
                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                      </div>
-                     <input id="password-confirm" name="password-confirm" type="password" autocomplete="new-password" required 
+                     <input id="password-confirm" v-model="passwordConfirm" name="password-confirm" type="password" autocomplete="new-password" required 
                        class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
                        placeholder="••••••••">
                   </div>
@@ -163,14 +242,13 @@ onMounted(() => {
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                            </svg>
                         </div>
-                        <input id="captcha" name="captcha" type="text" required 
+                       <input id="captcha" v-model="captchaCode" name="captcha" type="text" required 
                           class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
                           placeholder="输入验证码">
                      </div>
-                     <div class="w-24 h-11 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300 dark:border-gray-600">
-                        <!-- Placeholder for Captcha Image -->
-                        <span class="text-sm font-mono font-bold tracking-widest text-gray-500 dark:text-gray-400">XY3Z</span>
-                     </div>
+                     <button type="button" @click="loadCaptcha" class="w-24 h-11 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300 dark:border-gray-600">
+                        <img v-if="captchaImage" :src="captchaImage" class="w-full h-full object-cover" />
+                     </button>
                   </div>
                </div>
 
@@ -184,12 +262,12 @@ onMounted(() => {
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                            </svg>
                         </div>
-                        <input id="email-code" name="email-code" type="text" required 
+                        <input id="email-code" v-model="emailCode" name="email-code" type="text" required 
                           class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
                           placeholder="输入验证码">
                      </div>
-                     <button type="button" class="px-3 py-2.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-sm font-medium rounded-xl hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors whitespace-nowrap">
-                        获取验证码
+                     <button type="button" @click="handleSendCode" :disabled="codeSending" class="px-3 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed">
+                        {{ codeSending ? '发送中' : '获取验证码' }}
                      </button>
                   </div>
                </div>
@@ -204,11 +282,11 @@ onMounted(() => {
           </div>
 
           <div>
-            <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 transform hover:-translate-y-0.5">
-              注册账户
+            <button type="submit" :disabled="loading" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed">
+              {{ loading ? '注册中...' : '注册账户' }}
             </button>
           </div>
-          
+
           <div class="text-center text-sm mt-6">
               <span class="text-gray-600 dark:text-gray-400">已有账号? </span>
               <router-link to="/login" class="font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 transition-colors">
@@ -216,6 +294,23 @@ onMounted(() => {
               </router-link>
           </div>
         </form>
+      </div>
+    </div>
+    <div v-if="messageModal.show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-sm mx-4 overflow-hidden">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">提示</h3>
+        </div>
+        <div class="p-6">
+          <p :class="messageModal.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+            {{ messageModal.text }}
+          </p>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
+          <button @click="closeMessage" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+            确定
+          </button>
+        </div>
       </div>
     </div>
   </div>

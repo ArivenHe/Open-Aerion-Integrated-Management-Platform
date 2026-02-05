@@ -34,7 +34,11 @@ public class AuthController {
         return Result.success(token);
     }
 
-
+    @PostMapping("/register-code")
+    public Result<Void> sendRegisterCode(@RequestBody @Valid RequestForgotPassword request) {
+        userService.sendRegisterCode(request.getEmail());
+        return Result.success();
+    }
 
     @PostMapping("/forgot-password")
     public Result<Void> forgotPassword(@RequestBody @Valid RequestForgotPassword request) {
