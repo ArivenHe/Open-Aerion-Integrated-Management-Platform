@@ -1,5 +1,6 @@
 package cn.ariven.openaimpbackend.common;
 
+import cn.ariven.openaimpbackend.enumeration.ResultCode;
 import lombok.Data;
 
 @Data

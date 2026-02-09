@@ -24,7 +24,12 @@ public class CommonServiceImpl implements CommonService {
     @Override
     public String getFsdAccessTokenBySystemAdmin() {
         AuthTokens authTokens = openFsdApiService.login(adminCid, adminPassword, false);
-        log.info(authTokens.toString());
+        return authTokens.getAccessToken();
+    }
+
+    @Override
+    public String getFsdAccessTokenByAuth(Integer cid, String password) {
+        AuthTokens authTokens = openFsdApiService.login(cid, password, false);
         return authTokens.getAccessToken();
     }
 

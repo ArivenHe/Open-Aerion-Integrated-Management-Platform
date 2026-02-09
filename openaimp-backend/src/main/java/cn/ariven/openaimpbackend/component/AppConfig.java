@@ -16,16 +16,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AppConfig {
 
-    private static String vatsimDataUrlStatic; // 静态变量接收值
+    private static String vatsimDataUrlStatic;
 
     @Value("${url.whazzup}")
-    private String vatsimDataUrl; // 实例变量注入值
+    private String vatsimDataUrl;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
 
     @PostConstruct
     public void init() {
-        vatsimDataUrlStatic = vatsimDataUrl; // 赋值给静态变量
+        vatsimDataUrlStatic = vatsimDataUrl;
         initDefaultRoles();
         initDefaultPermissions();
         bindDefaultRolePermissions();
@@ -43,6 +43,7 @@ public class AppConfig {
     }
 
     private void initDefaultPermissions() {
+        //rbac权限模型crud模块相关权限
         ensurePermissionExists("rbac:role:create", "创建角色");
         ensurePermissionExists("rbac:role:update", "更新角色");
         ensurePermissionExists("rbac:role:delete", "删除角色");
@@ -55,6 +56,9 @@ public class AppConfig {
         ensurePermissionExists("rbac:permission:list", "权限列表");
         ensurePermissionExists("rbac:user:assign-roles", "分配用户角色");
         ensurePermissionExists("rbac:user:roles", "用户角色列表");
+        ensurePermissionExists("activity:create", "创建活动");
+        ensurePermissionExists("activity:update", "更新活动");
+        ensurePermissionExists("activity:delete", "删除活动");
     }
 
     private void bindDefaultRolePermissions() {

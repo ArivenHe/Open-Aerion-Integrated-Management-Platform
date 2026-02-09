@@ -1,4 +1,4 @@
-package cn.ariven.openaimpbackend.common;
+package cn.ariven.openaimpbackend.enumeration;
 
 import lombok.Getter;
 
