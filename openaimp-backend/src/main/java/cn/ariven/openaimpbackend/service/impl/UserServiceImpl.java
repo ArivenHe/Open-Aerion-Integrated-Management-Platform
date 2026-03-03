@@ -5,6 +5,7 @@ import cn.ariven.openaimpbackend.dto.request.auth.RequestRegister;
 import cn.ariven.openaimpbackend.dto.request.auth.RequestResetPassword;
 import cn.ariven.openaimpbackend.dto.request.openfsd.CreateUserRequest;
 import cn.ariven.openaimpbackend.dto.response.openfsd.UserInfo;
+import cn.ariven.openaimpbackend.dto.response.user.ResponseOnlineStats;
 import cn.ariven.openaimpbackend.pojo.Role;
 import cn.ariven.openaimpbackend.pojo.User;
 import cn.ariven.openaimpbackend.repository.RoleRepository;
@@ -24,6 +25,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -110,8 +112,66 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Invalid password");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        if (Boolean.TRUE.equals(user.getOnline()) && user.getCurrentOnlineStartTime() != null) {
+            long duration = Math.max(Duration.between(user.getCurrentOnlineStartTime(), now).getSeconds(), 0);
+            user.setTotalOnlineDurationSeconds(defaultOnlineDuration(user) + duration);
+        }
+        user.setLastLoginTime(now);
+        user.setCurrentOnlineStartTime(now);
+        user.setOnline(true);
+        userRepository.save(user);
+
         StpUtil.login(user.getId());
         return StpUtil.getTokenValue();
+    }
+
+    @Override
+    @Transactional
+    public void logout() {
+        Object loginId = StpUtil.getLoginIdDefaultNull();
+        if (loginId == null) {
+            return;
+        }
+
+        Long userId = Long.parseLong(loginId.toString());
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        LocalDateTime now = LocalDateTime.now();
+        if (user.getCurrentOnlineStartTime() != null) {
+            long duration = Math.max(Duration.between(user.getCurrentOnlineStartTime(), now).getSeconds(), 0);
+            user.setTotalOnlineDurationSeconds(defaultOnlineDuration(user) + duration);
+        }
+        user.setCurrentOnlineStartTime(null);
+        user.setOnline(false);
+        userRepository.save(user);
+
+        StpUtil.logout();
+    }
+
+    @Override
+    public ResponseOnlineStats getOnlineStats() {
+        List<User> onlineUsers = userRepository.findAllByOnlineTrue();
+        LocalDateTime now = LocalDateTime.now();
+
+        List<ResponseOnlineStats.OnlineUserItem> userItems = onlineUsers.stream().map(user -> {
+            long onlineDuration = defaultOnlineDuration(user);
+            if (user.getCurrentOnlineStartTime() != null) {
+                onlineDuration += Math.max(Duration.between(user.getCurrentOnlineStartTime(), now).getSeconds(), 0);
+            }
+            return ResponseOnlineStats.OnlineUserItem.builder()
+                    .userId(user.getId())
+                    .callsign(user.getCallsign())
+                    .lastLoginTime(user.getLastLoginTime())
+                    .onlineDurationSeconds(onlineDuration)
+                    .build();
+        }).toList();
+
+        return ResponseOnlineStats.builder()
+                .onlineCount(userRepository.countByOnlineTrue())
+                .onlineUsers(userItems)
+                .build();
     }
 
 
@@ -182,6 +242,10 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         redisTemplate.delete(RESET_CODE_PREFIX + request.getEmail());
+    }
+
+    private long defaultOnlineDuration(User user) {
+        return user.getTotalOnlineDurationSeconds() == null ? 0L : user.getTotalOnlineDurationSeconds();
     }
 
 }

@@ -2,8 +2,11 @@ package cn.ariven.openaimpbackend.component;
 
 import cn.ariven.openaimpbackend.pojo.Permission;
 import cn.ariven.openaimpbackend.pojo.Role;
+import cn.ariven.openaimpbackend.pojo.User;
 import cn.ariven.openaimpbackend.repository.PermissionRepository;
 import cn.ariven.openaimpbackend.repository.RoleRepository;
+import cn.ariven.openaimpbackend.repository.UserRepository;
+import cn.ariven.openaimpbackend.util.PasswordEncoder;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +23,19 @@ public class AppConfig {
 
     @Value("${url.whazzup}")
     private String vatsimDataUrl;
+    @Value("${app.default-admin.enabled:true}")
+    private boolean defaultAdminEnabled;
+    @Value("${app.default-admin.callsign:admin}")
+    private String defaultAdminCallsign;
+    @Value("${app.default-admin.email:admin@openaimp.local}")
+    private String defaultAdminEmail;
+    @Value("${app.default-admin.password:admin123456}")
+    private String defaultAdminPassword;
+    @Value("${app.default-admin.qq:}")
+    private String defaultAdminQq;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final UserRepository userRepository;
 
     @PostConstruct
     public void init() {
@@ -29,6 +43,7 @@ public class AppConfig {
         initDefaultRoles();
         initDefaultPermissions();
         bindDefaultRolePermissions();
+        initDefaultAdminUser();
     }
 
     // 提供静态访问方法
@@ -97,5 +112,27 @@ public class AppConfig {
             newPermission.setDescription(description);
             permissionRepository.save(newPermission);
         }
+    }
+
+    private void initDefaultAdminUser() {
+        if (!defaultAdminEnabled) {
+            return;
+        }
+        if (userRepository.existsByCallsign(defaultAdminCallsign) || userRepository.existsByEmail(defaultAdminEmail)) {
+            return;
+        }
+
+        Role adminRole = roleRepository.findByName("admin");
+        if (adminRole == null) {
+            return;
+        }
+
+        User admin = new User();
+        admin.setCallsign(defaultAdminCallsign);
+        admin.setEmail(defaultAdminEmail);
+        admin.setPassword(PasswordEncoder.encode(defaultAdminPassword));
+        admin.setQq(defaultAdminQq);
+        admin.setRoles(List.of(adminRole));
+        userRepository.save(admin);
     }
 }

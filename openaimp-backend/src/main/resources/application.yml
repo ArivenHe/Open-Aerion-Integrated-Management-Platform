@@ -66,4 +66,11 @@ openfsd:
     cid: 1
     password: ab321818
 
+app:
+  default-admin:
+    enabled: true
+    callsign: admin
+    email: admin@openaimp.local
+    password: admin123456
+    qq: ""
 

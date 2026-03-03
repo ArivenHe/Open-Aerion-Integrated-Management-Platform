@@ -46,4 +46,12 @@ public class User {
 
     @UpdateTimestamp
     private LocalDateTime updateTime;
+
+    private LocalDateTime lastLoginTime;
+
+    private Long totalOnlineDurationSeconds = 0L;
+
+    private LocalDateTime currentOnlineStartTime;
+
+    private Boolean online = false;
 }
