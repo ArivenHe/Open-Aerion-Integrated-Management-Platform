@@ -121,9 +121,9 @@ public class ActivityServiceImpl implements ActivityService {
         Long userId = StpUtil.getLoginIdAsLong();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
-        if (user.getAtcRating() == null || user.getAtcRating() <= 0) {
-            throw new RuntimeException("飞行员等级不足，无法报名");
-        }
+//        if (user.getAtcRating() == null || user.getAtcRating() <= 0) {
+//            throw new RuntimeException("飞行员等级不足，无法报名");
+//        }
         Activity activity = activityRepository.findById(request.getId())
                 .orElseThrow(() -> new RuntimeException("活动不存在"));
         List<User> pilotList = activity.getPilotList();

@@ -23,7 +23,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    private Integer atcRating=1;
+    @ManyToOne
+    @JoinColumn(name = "atc_rating_id")
+    private Atc atcRating;
 
     @Column(nullable = false, unique = true)
     private String email;
