@@ -353,7 +353,6 @@ func (s *Server) generateDatafeed() (feed *DatafeedCache, err error) {
 		return
 	}
 
-	if res.StatusCode != http.StatusOK {
 		err = errors.New("FSD HTTP service returned a non-200 status code")
 		return
 	}

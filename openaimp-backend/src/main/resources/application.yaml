@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: openaimp-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/openaimp?serverTimeZone=UTC
+    username: root
+    password: ${DB_PASSWORD:ab321818}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+    hibernate:
+      ddl-auto: update
+
+sa-token:
+  token-name: aerionstudio
+  timeout: 2592000
+  active-timeout: -1
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+  is-log: true
+
+server:
+  port: 6067

@@ -42,7 +42,7 @@ const loadCaptcha = async () => {
   try {
     const res = await fetchCaptcha()
     captchaKey.value = res.data.key
-    captchaImage.value = `data:image/png;base64,${res.data.imageBase64}`
+    captchaImage.value = res.data.imageBase64;
   } catch (error) {
     showMessage(error.message, 'error')
   }
