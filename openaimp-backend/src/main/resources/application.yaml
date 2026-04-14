@@ -14,6 +14,32 @@ spring:
         format_sql: false
     hibernate:
       ddl-auto: update
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
+      timeout: 5s
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: amstudio@qq.com
+    password: ojxeivkzyineddaj
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: false
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 sa-token:
   token-name: aerionstudio
@@ -26,3 +52,7 @@ sa-token:
 
 server:
   port: 6067
+
+app:
+  mail:
+    from: amstudio@qq.com

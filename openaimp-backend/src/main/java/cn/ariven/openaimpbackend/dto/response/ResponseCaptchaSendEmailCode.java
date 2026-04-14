@@ -1,4 +1,4 @@
-package cn.ariven.openaimpbackend.dto.request;
+package cn.ariven.openaimpbackend.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RequestAuthRegisterEmail {
+public class ResponseCaptchaSendEmailCode {
   private String email;
-  private String password;
-  private String emailCode;
+  private Long expireSeconds;
 }

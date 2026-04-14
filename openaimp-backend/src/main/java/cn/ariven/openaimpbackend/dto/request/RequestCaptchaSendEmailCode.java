@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
-public class RequestAuthRegisterEmail {
+@NoArgsConstructor
+public class RequestCaptchaSendEmailCode {
   private String email;
-  private String password;
-  private String emailCode;
+  private String captchaKey;
+  private String imageCode;
 }
