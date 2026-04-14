@@ -1,7 +1,9 @@
 package cn.ariven.openaimpbackend.controller;
 
 import cn.ariven.openaimpbackend.dto.Result;
+import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthRegisterEmail;
+import cn.ariven.openaimpbackend.dto.response.ResponseAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthRegisterEmail;
 import cn.ariven.openaimpbackend.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -21,5 +23,11 @@ public class AuthController {
   public Result<ResponseAuthRegisterEmail> registerByEmail(
       @RequestBody RequestAuthRegisterEmail requestAuthRegisterEmail) {
     return authService.registerByEmail(requestAuthRegisterEmail);
+  }
+
+  @PostMapping("/login/email")
+  public Result<ResponseAuthLoginEmail> loginEmail(
+      @RequestBody RequestAuthLoginEmail requestAuthLoginEmail) {
+    return authService.loginEmail(requestAuthLoginEmail);
   }
 }

@@ -1,13 +1,16 @@
 package cn.ariven.openaimpbackend.service.impl;
 
 import cn.ariven.openaimpbackend.dto.Result;
+import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthRegisterEmail;
+import cn.ariven.openaimpbackend.dto.response.ResponseAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthRegisterEmail;
 import cn.ariven.openaimpbackend.mapper.AuthMapper;
 import cn.ariven.openaimpbackend.pojo.Auth;
 import cn.ariven.openaimpbackend.service.AuthService;
 import cn.ariven.openaimpbackend.service.CaptchaService;
 import cn.dev33.satoken.secure.SaSecureUtil;
+import cn.dev33.satoken.stp.StpUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -52,6 +55,24 @@ public class IAuthServiceImpl implements AuthService {
     }
 
     return Result.fail("注册失败,请稍后重试");
+  }
+
+  @Override
+  public Result<ResponseAuthLoginEmail> loginEmail(RequestAuthLoginEmail requestAuthLoginEmail) {
+
+    if (requestAuthLoginEmail != null
+        || isBlank(requestAuthLoginEmail.getEmail())
+        || isBlank(requestAuthLoginEmail.getPassword())) {
+      return Result.fail("邮箱或密码不能为空");
+    }
+
+    Auth auth = authMapper.findAuthByEmail(requestAuthLoginEmail.getEmail());
+    if (auth != null) {
+      StpUtil.login(auth.getCid());
+      return Result.success("登录成功", ResponseAuthLoginEmail.builder().cid(auth.getCid()).build());
+    }
+
+    return Result.fail("登录失败,请稍后重试");
   }
 
   private boolean isBlank(String value) {
