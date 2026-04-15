@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class ICaptchaServiceImpl implements CaptchaService {
+public class CaptchaServiceImpl implements CaptchaService {
 
   private static final long IMAGE_CAPTCHA_EXPIRE_SECONDS = 300L;
   private static final long EMAIL_CODE_EXPIRE_SECONDS = 300L;
@@ -57,7 +57,11 @@ public class ICaptchaServiceImpl implements CaptchaService {
 
     stringRedisTemplate
         .opsForValue()
-        .set(buildImageCaptchaKey(captchaKey), captchaCode, IMAGE_CAPTCHA_EXPIRE_SECONDS, TimeUnit.SECONDS);
+        .set(
+            buildImageCaptchaKey(captchaKey),
+            captchaCode,
+            IMAGE_CAPTCHA_EXPIRE_SECONDS,
+            TimeUnit.SECONDS);
 
     ResponseCaptchaImage responseCaptchaImage =
         ResponseCaptchaImage.builder()
@@ -102,9 +106,7 @@ public class ICaptchaServiceImpl implements CaptchaService {
 
     try {
       sendEmail(
-          requestCaptchaSendEmailCode.getEmail(),
-          "OpenAIMP 邮箱验证码",
-          buildEmailContent(emailCode));
+          requestCaptchaSendEmailCode.getEmail(), "OpenAIMP 邮箱验证码", buildEmailContent(emailCode));
     } catch (MailException | IllegalStateException e) {
       stringRedisTemplate.delete(buildEmailCaptchaKey(requestCaptchaSendEmailCode.getEmail()));
       return Result.fail("邮箱验证码发送失败,请检查邮件配置后重试");
@@ -170,9 +172,7 @@ public class ICaptchaServiceImpl implements CaptchaService {
   }
 
   private String buildEmailContent(String emailCode) {
-    return "您好，您的 OpenAIMP 邮箱验证码为："
-        + emailCode
-        + "，5分钟内有效。若非本人操作，请忽略此邮件。";
+    return "您好，您的 OpenAIMP 邮箱验证码为：" + emailCode + "，5分钟内有效。若非本人操作，请忽略此邮件。";
   }
 
   private boolean isBlank(String value) {

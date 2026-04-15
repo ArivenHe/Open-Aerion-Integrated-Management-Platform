@@ -56,3 +56,14 @@ server:
 app:
   mail:
     from: amstudio@qq.com
+  fsd:
+    service-base-url: ${FSD_SERVICE_BASE_URL:http://localhost:13618}
+    web-base-url: ${FSD_WEB_BASE_URL:http://localhost:8080}
+    jwt-secret: ${FSD_JWT_SECRET:}
+    service-cid: ${FSD_SERVICE_CID:1}
+    service-first-name: ${FSD_SERVICE_FIRST_NAME:OpenAIMP}
+    service-last-name: ${FSD_SERVICE_LAST_NAME:Backend}
+    service-network-rating: ${FSD_SERVICE_NETWORK_RATING:12}
+    service-token-validity-seconds: ${FSD_SERVICE_TOKEN_VALIDITY_SECONDS:900}
+    request-timeout-seconds: ${FSD_SERVICE_REQUEST_TIMEOUT_SECONDS:10}
+    default-user-network-rating: ${FSD_DEFAULT_USER_NETWORK_RATING:1}

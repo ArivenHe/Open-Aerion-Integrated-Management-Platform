@@ -3,27 +3,33 @@ package cn.ariven.openaimpbackend.service.impl;
 import cn.ariven.openaimpbackend.dto.Result;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthRegisterEmail;
+import cn.ariven.openaimpbackend.dto.request.RequestFsdCreateUser;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthRegisterEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseCurrentAuthorization;
+import cn.ariven.openaimpbackend.dto.response.ResponseFsdUser;
 import cn.ariven.openaimpbackend.mapper.AuthMapper;
 import cn.ariven.openaimpbackend.pojo.Auth;
 import cn.ariven.openaimpbackend.service.AuthService;
 import cn.ariven.openaimpbackend.service.CaptchaService;
+import cn.ariven.openaimpbackend.service.FsdService;
 import cn.ariven.openaimpbackend.service.RbacService;
 import cn.dev33.satoken.secure.SaSecureUtil;
 import cn.dev33.satoken.stp.StpUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class IAuthServiceImpl implements AuthService {
+public class AuthServiceImpl implements AuthService {
   private final AuthMapper authMapper;
   private final CaptchaService captchaService;
   private final RbacService rbacService;
+  private final FsdService fsdService;
 
   @Override
+  @Transactional
   public Result<ResponseAuthRegisterEmail> registerByEmail(
       RequestAuthRegisterEmail requestAuthRegisterEmail) {
     if (requestAuthRegisterEmail == null
@@ -43,19 +49,33 @@ public class IAuthServiceImpl implements AuthService {
     }
 
     String encodedPassword = SaSecureUtil.sha256(requestAuthRegisterEmail.getPassword());
+    ResponseFsdUser fsdUser =
+        fsdService.createUser(
+            RequestFsdCreateUser.builder()
+                .password(requestAuthRegisterEmail.getPassword())
+                .firstName(
+                    resolveFsdFirstName(
+                        requestAuthRegisterEmail.getFirstName(),
+                        requestAuthRegisterEmail.getEmail()))
+                .lastName(requestAuthRegisterEmail.getLastName())
+                .build());
 
-    Auth auth =
-        Auth.builder().email(requestAuthRegisterEmail.getEmail()).password(encodedPassword).build();
-    authMapper.save(auth);
-    if (authMapper.existsByEmail(requestAuthRegisterEmail.getEmail())) {
+    if (authMapper.existsById(fsdUser.getCid())) {
+      throw new IllegalArgumentException("本地用户 CID 与 FSD 账号冲突，请联系管理员处理: " + fsdUser.getCid());
+    }
+
+    int inserted =
+        authMapper.insertWithCid(
+            fsdUser.getCid(), requestAuthRegisterEmail.getEmail(), encodedPassword);
+    if (inserted > 0) {
       Auth registeredAuth = authMapper.findAuthByEmail(requestAuthRegisterEmail.getEmail());
       rbacService.ensureDefaultRolesForNewUser(registeredAuth);
       ResponseAuthRegisterEmail responseAuthRegisterEmail =
           ResponseAuthRegisterEmail.builder()
               .cid(registeredAuth.getCid())
-              .email(auth.getEmail())
+              .email(registeredAuth.getEmail())
               .build();
-      return Result.success("注册成功", responseAuthRegisterEmail);
+      return Result.success("注册成功，平台账号与 FSD 账号已同步创建", responseAuthRegisterEmail);
     }
 
     return Result.fail("注册失败,请稍后重试");
@@ -88,5 +108,19 @@ public class IAuthServiceImpl implements AuthService {
 
   private boolean isBlank(String value) {
     return value == null || value.trim().isEmpty();
+  }
+
+  private String resolveFsdFirstName(String firstName, String email) {
+    if (!isBlank(firstName)) {
+      return firstName.trim();
+    }
+    if (!isBlank(email)) {
+      int separatorIndex = email.indexOf('@');
+      if (separatorIndex > 0) {
+        return email.substring(0, separatorIndex);
+      }
+      return email.trim();
+    }
+    return "OpenAIMP";
   }
 }

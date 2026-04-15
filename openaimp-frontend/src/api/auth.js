@@ -20,11 +20,11 @@ api.interceptors.response.use(
 
 export const fetchCaptcha = async () => api.get('/captcha/image')
 
-export const login = async (payload) => api.post('/auth/login', payload)
+export const login = async (payload) => api.post('/auth/login/email', payload)
 
-export const register = async (payload) => api.post('/auth/register', payload)
+export const register = async (payload) => api.post('/auth/register/email', payload)
 
-export const sendRegisterCode = async (email) => api.post('/auth/register-code', { email })
+export const sendRegisterCode = async (payload) => api.post('/captcha/email/send', payload)
 
 export const sendForgotPasswordCode = async (email) => api.post('/auth/forgot-password', { email })
 

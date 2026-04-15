@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class IRbacServiceImpl implements RbacService {
+public class RbacServiceImpl implements RbacService {
   private final AuthMapper authMapper;
   private final RbacRoleMapper rbacRoleMapper;
   private final RbacPermissionMapper rbacPermissionMapper;
@@ -99,10 +99,13 @@ public class IRbacServiceImpl implements RbacService {
     List<String> normalizedCodes = normalizeCodes(permissionCodes, "权限编码");
     RbacRole role = getRoleOrThrow(normalizedRoleCode);
     List<RbacPermission> permissions = rbacPermissionMapper.findByCodeIn(normalizedCodes);
-    validateAllFound(normalizedCodes, permissions.stream().map(RbacPermission::getCode).toList(), "权限");
+    validateAllFound(
+        normalizedCodes, permissions.stream().map(RbacPermission::getCode).toList(), "权限");
 
-    List<Long> targetPermissionIds = permissions.stream().map(RbacPermission::getId).distinct().toList();
-    List<RbacRolePermission> existingRelations = rbacRolePermissionMapper.findAllByRoleId(role.getId());
+    List<Long> targetPermissionIds =
+        permissions.stream().map(RbacPermission::getId).distinct().toList();
+    List<RbacRolePermission> existingRelations =
+        rbacRolePermissionMapper.findAllByRoleId(role.getId());
     List<RbacRolePermission> relationsToRemove =
         existingRelations.stream()
             .filter(relation -> !targetPermissionIds.contains(relation.getPermissionId()))
@@ -119,7 +122,8 @@ public class IRbacServiceImpl implements RbacService {
 
   @Override
   @Transactional
-  public ResponseRbacCatalog.RoleView revokePermissionFromRole(String roleCode, String permissionCode) {
+  public ResponseRbacCatalog.RoleView revokePermissionFromRole(
+      String roleCode, String permissionCode) {
     RbacRole role = getRoleOrThrow(normalizeCode(roleCode, "角色编码"));
     RbacPermission permission = getPermissionOrThrow(normalizeCode(permissionCode, "权限编码"));
     if (!rbacRolePermissionMapper.existsByRoleIdAndPermissionId(role.getId(), permission.getId())) {
@@ -198,7 +202,9 @@ public class IRbacServiceImpl implements RbacService {
 
     List<ResponseRbacCatalog.RoleView> roleViews =
         rbacRoleMapper.findAllByOrderByIdAsc().stream()
-            .map(role -> buildRoleView(role, permissionsByRoleId.getOrDefault(role.getId(), List.of())))
+            .map(
+                role ->
+                    buildRoleView(role, permissionsByRoleId.getOrDefault(role.getId(), List.of())))
             .toList();
 
     List<ResponseRbacCatalog.PermissionView> permissionViews =
@@ -224,7 +230,9 @@ public class IRbacServiceImpl implements RbacService {
     }
 
     Map<Long, RbacRole> roleMap =
-        rbacRoleMapper.findAllById(userRoles.stream().map(RbacUserRole::getRoleId).distinct().toList()).stream()
+        rbacRoleMapper
+            .findAllById(userRoles.stream().map(RbacUserRole::getRoleId).distinct().toList())
+            .stream()
             .collect(Collectors.toMap(RbacRole::getId, Function.identity()));
 
     return userRoles.stream()
@@ -251,8 +259,12 @@ public class IRbacServiceImpl implements RbacService {
     }
 
     Map<Long, RbacPermission> permissionMap =
-        rbacPermissionMapper.findAllById(
-                rolePermissions.stream().map(RbacRolePermission::getPermissionId).distinct().toList())
+        rbacPermissionMapper
+            .findAllById(
+                rolePermissions.stream()
+                    .map(RbacRolePermission::getPermissionId)
+                    .distinct()
+                    .toList())
             .stream()
             .collect(Collectors.toMap(RbacPermission::getId, Function.identity()));
 
@@ -280,7 +292,8 @@ public class IRbacServiceImpl implements RbacService {
         .collect(Collectors.toMap(RbacPermission::getId, Function.identity()));
   }
 
-  private Map<Long, List<String>> getRolePermissionCodesMap(Map<Long, RbacPermission> permissionMap) {
+  private Map<Long, List<String>> getRolePermissionCodesMap(
+      Map<Long, RbacPermission> permissionMap) {
     return rbacRolePermissionMapper.findAll().stream()
         .collect(
             Collectors.groupingBy(
@@ -306,8 +319,7 @@ public class IRbacServiceImpl implements RbacService {
         .toList();
   }
 
-  private ResponseRbacCatalog.RoleView buildRoleView(
-      RbacRole role, List<String> permissionCodes) {
+  private ResponseRbacCatalog.RoleView buildRoleView(RbacRole role, List<String> permissionCodes) {
     List<String> codes = permissionCodes;
     if (codes == null || codes.isEmpty()) {
       codes = getRolePermissionCodesByRoleId(role.getId());
@@ -405,7 +417,8 @@ public class IRbacServiceImpl implements RbacService {
     return normalized.isEmpty() ? null : normalized;
   }
 
-  private void validateAllFound(List<String> expectedCodes, List<String> foundCodes, String targetName) {
+  private void validateAllFound(
+      List<String> expectedCodes, List<String> foundCodes, String targetName) {
     List<String> missingCodes =
         expectedCodes.stream().filter(code -> !foundCodes.contains(code)).distinct().toList();
     if (!missingCodes.isEmpty()) {

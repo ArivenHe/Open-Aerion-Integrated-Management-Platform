@@ -5,7 +5,8 @@ import { fetchCaptcha, register, sendRegisterCode } from '@/api/auth'
 
 const isDark = ref(false)
 const router = useRouter()
-const callsign = ref('')
+const firstName = ref('')
+const lastName = ref('')
 const email = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
@@ -41,8 +42,8 @@ const closeMessage = async () => {
 const loadCaptcha = async () => {
   try {
     const res = await fetchCaptcha()
-    captchaKey.value = res.data.key
-    captchaImage.value = res.data.imageBase64;
+    captchaKey.value = res.data.captchaKey
+    captchaImage.value = res.data.imageBase64
   } catch (error) {
     showMessage(error.message, 'error')
   }
@@ -54,12 +55,23 @@ const handleSendCode = async () => {
     showMessage('请先填写邮箱', 'error')
     return
   }
+  if (!captchaKey.value || !captchaCode.value) {
+    showMessage('请先输入图形验证码', 'error')
+    return
+  }
   codeSending.value = true
   try {
-    await sendRegisterCode(email.value)
+    await sendRegisterCode({
+      email: email.value,
+      captchaKey: captchaKey.value,
+      imageCode: captchaCode.value,
+    })
     showMessage('验证码已发送，请查收邮箱', 'success')
+    captchaCode.value = ''
+    await loadCaptcha()
   } catch (error) {
     showMessage(error.message, 'error')
+    await loadCaptcha()
   } finally {
     codeSending.value = false
   }
@@ -73,18 +85,21 @@ const handleRegister = async () => {
   }
   loading.value = true
   try {
-    await register({
-      callsign: callsign.value,
+    const res = await register({
+      firstName: firstName.value,
+      lastName: lastName.value,
       email: email.value,
       password: password.value,
-      captchaKey: captchaKey.value,
-      captchaCode: captchaCode.value,
       emailCode: emailCode.value,
     })
-    showMessage('注册成功，请前往登录', 'success', '/login')
+    const cid = res?.data?.cid
+    showMessage(
+      cid ? `注册成功，您的平台 / FSD CID 为 ${cid}，请前往登录` : '注册成功，请前往登录',
+      'success',
+      '/login'
+    )
   } catch (error) {
     showMessage(error.message, 'error')
-    await loadCaptcha()
   } finally {
     loading.value = false
   }
@@ -173,17 +188,32 @@ onMounted(() => {
 
         <form class="mt-8 space-y-6" @submit.prevent="handleRegister">
           <div class="space-y-5">
-            <div>
-              <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">用户名</label>
-              <div class="relative">
-                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label for="first-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">名</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                 </div>
-                 <input id="username" v-model="callsign" name="username" type="text" required 
-                   class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                   placeholder="Your username">
+                  </div>
+                  <input id="first-name" v-model="firstName" name="first-name" type="text"
+                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200"
+                    placeholder="例如：Ariven">
+                </div>
+              </div>
+              <div>
+                <label for="last-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">姓</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A14.936 14.936 0 0112 16c2.476 0 4.812.6 6.879 1.664M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <input id="last-name" v-model="lastName" name="last-name" type="text"
+                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200"
+                    placeholder="例如：Wang">
+                </div>
               </div>
             </div>
 

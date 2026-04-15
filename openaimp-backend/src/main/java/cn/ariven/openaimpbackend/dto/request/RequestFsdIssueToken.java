@@ -9,10 +9,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RequestAuthRegisterEmail {
-  private String email;
-  private String password;
-  private String emailCode;
+public class RequestFsdIssueToken {
+  private String tokenType;
+  private Integer cid;
   private String firstName;
   private String lastName;
+  private Integer networkRating;
+  private Long validitySeconds;
 }
