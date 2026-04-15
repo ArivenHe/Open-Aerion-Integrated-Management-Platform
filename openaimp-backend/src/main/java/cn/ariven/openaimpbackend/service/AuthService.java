@@ -5,10 +5,13 @@ import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthRegisterEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthRegisterEmail;
+import cn.ariven.openaimpbackend.dto.response.ResponseCurrentAuthorization;
 
 public interface AuthService {
   Result<ResponseAuthRegisterEmail> registerByEmail(
       RequestAuthRegisterEmail requestAuthRegisterEmail);
 
   Result<ResponseAuthLoginEmail> loginEmail(RequestAuthLoginEmail requestAuthLoginEmail);
+
+  Result<ResponseCurrentAuthorization> currentAuthorization();
 }

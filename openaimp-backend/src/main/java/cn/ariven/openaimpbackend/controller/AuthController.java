@@ -5,8 +5,10 @@ import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthRegisterEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthRegisterEmail;
+import cn.ariven.openaimpbackend.dto.response.ResponseCurrentAuthorization;
 import cn.ariven.openaimpbackend.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,5 +31,10 @@ public class AuthController {
   public Result<ResponseAuthLoginEmail> loginEmail(
       @RequestBody RequestAuthLoginEmail requestAuthLoginEmail) {
     return authService.loginEmail(requestAuthLoginEmail);
+  }
+
+  @GetMapping("/me")
+  public Result<ResponseCurrentAuthorization> currentAuthorization() {
+    return authService.currentAuthorization();
   }
 }
