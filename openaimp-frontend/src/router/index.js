@@ -12,7 +12,7 @@ import SettingsView from "@/views/SettingsView.vue";
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
-        // Independent Pages
+
         {
             path: '/login',
             name: 'login',
@@ -33,7 +33,6 @@ const router = createRouter({
             name: 'map',
             component: OnlineMapView
         },
-        // Dashboard Pages
         {
             path: '/',
             component: DashboardLayout,

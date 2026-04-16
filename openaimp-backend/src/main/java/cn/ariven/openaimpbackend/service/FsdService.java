@@ -2,6 +2,7 @@ package cn.ariven.openaimpbackend.service;
 
 import cn.ariven.openaimpbackend.dto.request.RequestFsdCreateUser;
 import cn.ariven.openaimpbackend.dto.request.RequestFsdIssueToken;
+import cn.ariven.openaimpbackend.dto.request.RequestFsdUpdateUser;
 import cn.ariven.openaimpbackend.dto.response.ResponseFsdIssueToken;
 import cn.ariven.openaimpbackend.dto.response.ResponseFsdOnlineUsers;
 import cn.ariven.openaimpbackend.dto.response.ResponseFsdTokenClaims;
@@ -19,6 +20,8 @@ public interface FsdService {
   ResponseFsdOnlineUsers getOnlineUsers();
 
   ResponseFsdUser createUser(RequestFsdCreateUser requestFsdCreateUser);
+
+  ResponseFsdUser updateUser(RequestFsdUpdateUser requestFsdUpdateUser);
 
   void kickUser(String callsign);
 

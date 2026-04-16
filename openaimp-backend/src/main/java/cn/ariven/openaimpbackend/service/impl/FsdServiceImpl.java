@@ -4,6 +4,7 @@ import cn.ariven.openaimpbackend.config.FsdProperties;
 import cn.ariven.openaimpbackend.constant.FsdConstants;
 import cn.ariven.openaimpbackend.dto.request.RequestFsdCreateUser;
 import cn.ariven.openaimpbackend.dto.request.RequestFsdIssueToken;
+import cn.ariven.openaimpbackend.dto.request.RequestFsdUpdateUser;
 import cn.ariven.openaimpbackend.dto.response.ResponseFsdApiEnvelope;
 import cn.ariven.openaimpbackend.dto.response.ResponseFsdIssueToken;
 import cn.ariven.openaimpbackend.dto.response.ResponseFsdOnlineUsers;
@@ -254,6 +255,74 @@ public class FsdServiceImpl implements FsdService {
       return envelope.getData();
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("解析 FSD 创建用户响应失败", e);
+    }
+  }
+
+  @Override
+  public ResponseFsdUser updateUser(RequestFsdUpdateUser requestFsdUpdateUser) {
+    if (requestFsdUpdateUser == null) {
+      throw new IllegalArgumentException("FSD 用户更新请求不能为空");
+    }
+
+    Integer cid = requirePositive(requestFsdUpdateUser.getCid(), "cid");
+    Map<String, Object> payload = new LinkedHashMap<>();
+    payload.put("cid", cid);
+    if (requestFsdUpdateUser.getPassword() != null) {
+      String password = requestFsdUpdateUser.getPassword().trim();
+      if (password.length() < 8) {
+        throw new IllegalArgumentException("FSD 用户密码长度不能小于 8 位");
+      }
+      if (password.contains(":")) {
+        throw new IllegalArgumentException("FSD 用户密码不能包含冒号字符");
+      }
+      payload.put("password", password);
+    }
+    if (requestFsdUpdateUser.getFirstName() != null) {
+      payload.put("first_name", normalizeNullable(requestFsdUpdateUser.getFirstName()));
+    }
+    if (requestFsdUpdateUser.getLastName() != null) {
+      payload.put("last_name", normalizeNullable(requestFsdUpdateUser.getLastName()));
+    }
+    if (requestFsdUpdateUser.getNetworkRating() != null) {
+      Integer networkRating = requestFsdUpdateUser.getNetworkRating();
+      if (networkRating < -1 || networkRating > 12) {
+        throw new IllegalArgumentException("networkRating 必须在 -1 到 12 之间");
+      }
+      payload.put("network_rating", networkRating);
+    }
+
+    String requestBody;
+    try {
+      requestBody = objectMapper.writeValueAsString(payload);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("序列化 FSD 更新用户请求失败", e);
+    }
+
+    HttpRequest request =
+        webAuthorizedRequestBuilder("/api/v1/user/update")
+            .method("PATCH", HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .build();
+
+    HttpResponse<String> response = send(request);
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("FSD 更新用户失败，HTTP 状态码: " + response.statusCode());
+    }
+
+    try {
+      ResponseFsdApiEnvelope<ResponseFsdUser> envelope =
+          objectMapper.readValue(
+              response.body(), new TypeReference<ResponseFsdApiEnvelope<ResponseFsdUser>>() {});
+      if (envelope.getError() != null) {
+        throw new IllegalStateException("FSD 更新用户失败: " + envelope.getError());
+      }
+      if (envelope.getData() == null || envelope.getData().getCid() == null) {
+        throw new IllegalStateException("FSD 更新用户成功但未返回有效数据");
+      }
+      return envelope.getData();
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("解析 FSD 更新用户响应失败", e);
     }
   }
 

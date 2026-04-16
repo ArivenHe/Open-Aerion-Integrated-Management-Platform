@@ -1,9 +1,12 @@
 package cn.ariven.openaimpbackend.service.impl;
 
+import cn.ariven.openaimpbackend.constant.FsdConstants;
+import cn.ariven.openaimpbackend.constant.RbacConstants;
 import cn.ariven.openaimpbackend.dto.Result;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthRegisterEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestFsdCreateUser;
+import cn.ariven.openaimpbackend.dto.request.RequestFsdUpdateUser;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthRegisterEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseCurrentAuthorization;
@@ -70,6 +73,13 @@ public class AuthServiceImpl implements AuthService {
     if (inserted > 0) {
       Auth registeredAuth = authMapper.findAuthByEmail(requestAuthRegisterEmail.getEmail());
       rbacService.ensureDefaultRolesForNewUser(registeredAuth);
+      if (rbacService.getRoleCodesByUserId(registeredAuth.getCid()).contains(RbacConstants.ROLE_SUPER_ADMIN)) {
+        fsdService.updateUser(
+            RequestFsdUpdateUser.builder()
+                .cid(registeredAuth.getCid())
+                .networkRating(FsdConstants.NETWORK_RATING_ADMINISTRATOR)
+                .build());
+      }
       ResponseAuthRegisterEmail responseAuthRegisterEmail =
           ResponseAuthRegisterEmail.builder()
               .cid(registeredAuth.getCid())
