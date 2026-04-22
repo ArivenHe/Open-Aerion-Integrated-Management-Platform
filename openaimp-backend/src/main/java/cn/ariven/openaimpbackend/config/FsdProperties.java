@@ -11,7 +11,9 @@ public class FsdProperties {
   private String serviceBaseUrl;
   private String webBaseUrl;
   private String jwtSecret;
+  private String apiAccessToken;
   private Integer serviceCid;
+  private String servicePassword;
   private String serviceFirstName;
   private String serviceLastName;
   private Integer serviceNetworkRating;

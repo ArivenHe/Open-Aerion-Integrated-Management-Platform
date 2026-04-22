@@ -1,6 +1,7 @@
 package cn.ariven.openaimpbackend.controller;
 
 import cn.ariven.openaimpbackend.dto.Result;
+import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginCid;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthRegisterEmail;
 import cn.ariven.openaimpbackend.dto.response.ResponseAuthLoginEmail;
@@ -31,6 +32,12 @@ public class AuthController {
   public Result<ResponseAuthLoginEmail> loginEmail(
       @RequestBody RequestAuthLoginEmail requestAuthLoginEmail) {
     return authService.loginEmail(requestAuthLoginEmail);
+  }
+
+  @PostMapping("/login/cid")
+  public Result<ResponseAuthLoginEmail> loginCid(
+      @RequestBody RequestAuthLoginCid requestAuthLoginCid) {
+    return authService.loginCid(requestAuthLoginCid);
   }
 
   @GetMapping("/me")

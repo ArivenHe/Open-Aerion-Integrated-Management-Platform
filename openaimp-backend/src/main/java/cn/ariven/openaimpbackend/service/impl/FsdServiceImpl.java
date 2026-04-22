@@ -239,7 +239,10 @@ public class FsdServiceImpl implements FsdService {
 
     HttpResponse<String> response = send(request);
     if (response.statusCode() != 201) {
-      throw new IllegalStateException("FSD 创建用户失败，HTTP 状态码: " + response.statusCode());
+      throw new IllegalStateException(
+          "FSD 创建用户失败，HTTP 状态码: "
+              + response.statusCode()
+              + buildFailureSuffix(response.body()));
     }
 
     try {
@@ -307,7 +310,10 @@ public class FsdServiceImpl implements FsdService {
 
     HttpResponse<String> response = send(request);
     if (response.statusCode() != 200) {
-      throw new IllegalStateException("FSD 更新用户失败，HTTP 状态码: " + response.statusCode());
+      throw new IllegalStateException(
+          "FSD 更新用户失败，HTTP 状态码: "
+              + response.statusCode()
+              + buildFailureSuffix(response.body()));
     }
 
     try {
@@ -464,7 +470,7 @@ public class FsdServiceImpl implements FsdService {
   private HttpRequest.Builder webAuthorizedRequestBuilder(String path) {
     return HttpRequest.newBuilder(buildWebUri(path))
         .timeout(Duration.ofSeconds(resolvePositive(fsdProperties.getRequestTimeoutSeconds(), 10L)))
-        .header("Authorization", "Bearer " + issueAccessToken().getToken());
+        .header("Authorization", "Bearer " + resolveWebAccessToken());
   }
 
   private URI buildUri(String path) {
@@ -552,6 +558,109 @@ public class FsdServiceImpl implements FsdService {
     if (!StringUtils.hasText(fsdProperties.getJwtSecret())) {
       throw new IllegalStateException("未配置 app.fsd.jwt-secret，无法生成或校验 FSD JWT");
     }
+  }
+
+  private String resolveWebAccessToken() {
+    if (StringUtils.hasText(fsdProperties.getApiAccessToken())) {
+      return stripBearerPrefix(fsdProperties.getApiAccessToken().trim());
+    }
+
+    if (StringUtils.hasText(fsdProperties.getServicePassword())) {
+      return loginWebAccessToken();
+    }
+
+    ensureJwtSecretConfigured();
+    if (looksLikeJwt(fsdProperties.getJwtSecret())) {
+      throw new IllegalStateException(
+          "app.fsd.jwt-secret 当前看起来像一个 JWT token，而不是 openfsd 的签名密钥；"
+              + "请改为配置 openfsd 实际使用的 jwt_secret，或配置 app.fsd.api-access-token / app.fsd.service-password");
+    }
+
+    return issueAccessToken().getToken();
+  }
+
+  private String loginWebAccessToken() {
+    Integer cid = requirePositive(fsdProperties.getServiceCid(), "app.fsd.service-cid");
+    String password = normalizeRequired(fsdProperties.getServicePassword(), "app.fsd.service-password");
+
+    Map<String, Object> payload = new LinkedHashMap<>();
+    payload.put("cid", cid);
+    payload.put("password", password);
+    payload.put("remember_me", false);
+
+    String requestBody;
+    try {
+      requestBody = objectMapper.writeValueAsString(payload);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("序列化 FSD 登录请求失败", e);
+    }
+
+    HttpRequest request =
+        HttpRequest.newBuilder(buildWebUri("/api/v1/auth/login"))
+            .timeout(Duration.ofSeconds(resolvePositive(fsdProperties.getRequestTimeoutSeconds(), 10L)))
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .build();
+
+    HttpResponse<String> response = send(request);
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException(
+          "FSD 超管登录失败，HTTP 状态码: "
+              + response.statusCode()
+              + buildFailureSuffix(response.body()));
+    }
+
+    try {
+      JsonNode body = objectMapper.readTree(response.body());
+      String accessToken = textOrNull(body.path("data"), "access_token");
+      if (!StringUtils.hasText(accessToken)) {
+        throw new IllegalStateException("FSD 超管登录成功但未返回 access_token");
+      }
+      return accessToken;
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("解析 FSD 登录响应失败", e);
+    }
+  }
+
+  private String stripBearerPrefix(String token) {
+    if (token.regionMatches(true, 0, "Bearer ", 0, 7)) {
+      return token.substring(7).trim();
+    }
+    return token;
+  }
+
+  private boolean looksLikeJwt(String value) {
+    if (!StringUtils.hasText(value)) {
+      return false;
+    }
+    String trimmed = value.trim();
+    return trimmed.startsWith("eyJ") && trimmed.chars().filter(ch -> ch == '.').count() == 2;
+  }
+
+  private String buildFailureSuffix(String responseBody) {
+    if (!StringUtils.hasText(responseBody)) {
+      return "";
+    }
+
+    try {
+      JsonNode body = objectMapper.readTree(responseBody);
+      String error = textOrNull(body, "err");
+      if (!StringUtils.hasText(error)) {
+        error = textOrNull(body, "error");
+      }
+      if (StringUtils.hasText(error)) {
+        return "，响应: " + error;
+      }
+    } catch (Exception ignored) {
+      // Fall back to the raw body below when the response is not JSON.
+    }
+
+    String compactBody = responseBody.trim().replaceAll("\\s+", " ");
+    if (compactBody.length() > 200) {
+      compactBody = compactBody.substring(0, 200) + "...";
+    }
+    return "，响应体: " + compactBody;
   }
 
   private String normalizeRequired(String value, String fieldName) {

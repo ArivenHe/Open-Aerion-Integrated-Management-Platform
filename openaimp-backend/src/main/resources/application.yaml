@@ -57,10 +57,13 @@ app:
   mail:
     from: amstudio@qq.com
   fsd:
-    service-base-url: ${FSD_SERVICE_BASE_URL:http://localhost:13618}
-    web-base-url: ${FSD_WEB_BASE_URL:http://localhost:8080}
-    jwt-secret: ${FSD_JWT_SECRET:}
+    service-base-url: ${FSD_SERVICE_BASE_URL:http://localhost:8000}
+    web-base-url: ${FSD_WEB_BASE_URL:http://localhost:8000}
+    jwt-secret: ${FSD_JWT_SECRET:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJvcGVuZnNkIiwiZXhwIjoxOTIzNjk2MDAwLCJuYmYiOjE3NzY0MTMxNjksImlhdCI6MTc3NjQxMzE5OSwianRpIjoiMmI3OGEzOTktNmYzNy00YTBhLThmNDMtYzg0MTFjMzI4YTY3IiwidG9rZW5fdHlwZSI6ImFjY2VzcyIsImNpZCI6MSwibmV0d29ya19yYXRpbmciOjEyfQ.bZp9Dc74mPy23m4kUGrbGSd-uuYVyCJLWgQ44fmdfmU}
+    # 优先使用现成的 openfsd API token；未配置时，会用下面的超管 CID/密码登录 openfsd 获取 access_token。
+    api-access-token: ${FSD_API_ACCESS_TOKEN:}
     service-cid: ${FSD_SERVICE_CID:1}
+    service-password: ${FSD_SERVICE_PASSWORD:410b5bfb1696bc3f}
     service-first-name: ${FSD_SERVICE_FIRST_NAME:OpenAIMP}
     service-last-name: ${FSD_SERVICE_LAST_NAME:Backend}
     service-network-rating: ${FSD_SERVICE_NETWORK_RATING:12}

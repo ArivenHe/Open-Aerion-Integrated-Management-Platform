@@ -3,6 +3,7 @@ package cn.ariven.openaimpbackend.service.impl;
 import cn.ariven.openaimpbackend.constant.FsdConstants;
 import cn.ariven.openaimpbackend.constant.RbacConstants;
 import cn.ariven.openaimpbackend.dto.Result;
+import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginCid;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthLoginEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestAuthRegisterEmail;
 import cn.ariven.openaimpbackend.dto.request.RequestFsdCreateUser;
@@ -104,10 +105,28 @@ public class AuthServiceImpl implements AuthService {
     if (auth != null
         && auth.getPassword().equals(SaSecureUtil.sha256(requestAuthLoginEmail.getPassword()))) {
       StpUtil.login(auth.getCid());
-      return Result.success("登录成功", ResponseAuthLoginEmail.builder().cid(auth.getCid()).build());
+      return Result.success("登录成功", buildLoginResponse(auth));
     }
 
     return Result.fail("邮箱或密码错误");
+  }
+
+  @Override
+  public Result<ResponseAuthLoginEmail> loginCid(RequestAuthLoginCid requestAuthLoginCid) {
+    if (requestAuthLoginCid == null || requestAuthLoginCid.getCid() == null) {
+      return Result.fail("CID 不能为空");
+    }
+
+    Auth auth =
+        authMapper
+            .findById(requestAuthLoginCid.getCid())
+            .orElse(null);
+    if (auth == null) {
+      return Result.fail("CID 不存在");
+    }
+
+    StpUtil.login(auth.getCid());
+    return Result.success("登录成功", buildLoginResponse(auth));
   }
 
   @Override
@@ -118,6 +137,24 @@ public class AuthServiceImpl implements AuthService {
 
   private boolean isBlank(String value) {
     return value == null || value.trim().isEmpty();
+  }
+
+  private ResponseAuthLoginEmail buildLoginResponse(Auth auth) {
+    ResponseCurrentAuthorization authorization = rbacService.getUserAuthorization(auth.getCid());
+    return ResponseAuthLoginEmail.builder()
+        .cid(auth.getCid())
+        .token(StpUtil.getTokenValue())
+        .user(
+            ResponseAuthLoginEmail.UserInfo.builder()
+                .cid(auth.getCid())
+                .email(auth.getEmail())
+                .build())
+        .rbac(
+            ResponseAuthLoginEmail.RbacInfo.builder()
+                .roles(authorization.getRoles())
+                .permissions(authorization.getPermissions())
+                .build())
+        .build();
   }
 
   private String resolveFsdFirstName(String firstName, String email) {
