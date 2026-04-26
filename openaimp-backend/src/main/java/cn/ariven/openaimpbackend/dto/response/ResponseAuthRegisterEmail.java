@@ -1,5 +1,7 @@
 package cn.ariven.openaimpbackend.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,4 +14,7 @@ import lombok.NoArgsConstructor;
 public class ResponseAuthRegisterEmail {
   private String email;
   private Integer cid;
+
+  @JsonProperty("registered_at")
+  private LocalDateTime registeredAt;
 }

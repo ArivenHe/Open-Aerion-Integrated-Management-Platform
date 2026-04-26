@@ -1,7 +1,10 @@
 package cn.ariven.openaimpbackend.config;
 
+import cn.ariven.openaimpbackend.constant.FsdConstants;
 import cn.ariven.openaimpbackend.constant.RbacConstants;
+import cn.ariven.openaimpbackend.mapper.AtcMapper;
 import cn.ariven.openaimpbackend.mapper.*;
+import cn.ariven.openaimpbackend.pojo.Atc;
 import cn.ariven.openaimpbackend.pojo.Auth;
 import cn.ariven.openaimpbackend.pojo.RbacPermission;
 import cn.ariven.openaimpbackend.pojo.RbacRole;
@@ -11,13 +14,16 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@Order(20)
 @RequiredArgsConstructor
 public class RbacBootstrapRunner implements ApplicationRunner {
   private final AuthMapper authMapper;
+  private final AtcMapper atcMapper;
   private final RbacRoleMapper rbacRoleMapper;
   private final RbacPermissionMapper rbacPermissionMapper;
   private final RbacUserRoleMapper rbacUserRoleMapper;
@@ -86,6 +92,10 @@ public class RbacBootstrapRunner implements ApplicationRunner {
     if (!rbacUserRoleMapper.existsByRoleId(superAdminRole.getId()) && !users.isEmpty()) {
       ensureUserRole(users.get(0).getCid(), superAdminRole.getId());
     }
+
+    for (Auth user : users) {
+      ensureAtcBinding(user.getCid(), superAdminRole.getId());
+    }
   }
 
   private RbacRole ensureRole(String code, String name, String description, boolean builtin) {
@@ -144,5 +154,24 @@ public class RbacBootstrapRunner implements ApplicationRunner {
     if (!rbacUserRoleMapper.existsByUserIdAndRoleId(userId, roleId)) {
       rbacUserRoleMapper.save(RbacUserRole.builder().userId(userId).roleId(roleId).build());
     }
+  }
+
+  private void ensureAtcBinding(Integer userId, Long superAdminRoleId) {
+    if (atcMapper.existsByUserId(userId)) {
+      return;
+    }
+
+    int networkRating =
+        rbacUserRoleMapper.existsByUserIdAndRoleId(userId, superAdminRoleId)
+            ? FsdConstants.NETWORK_RATING_ADMINISTRATOR
+            : FsdConstants.NETWORK_RATING_OBSERVER;
+
+    atcMapper.save(
+        Atc.builder()
+            .userId(userId)
+            .networkRating(networkRating)
+            .facilityType(0)
+            .enabled(Boolean.TRUE)
+            .build());
   }
 }

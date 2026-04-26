@@ -1,6 +1,7 @@
 package cn.ariven.openaimpbackend.pojo;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,4 +22,9 @@ public class Auth {
 
   @Column(nullable = false)
   private String password;
+
+  @Column(updatable = false)
+  private LocalDateTime registeredAt;
+
+  private LocalDateTime lastLoginAt;
 }

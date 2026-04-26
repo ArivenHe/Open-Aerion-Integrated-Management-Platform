@@ -61,10 +61,7 @@ public class AtcServiceImpl implements AtcService {
           "当前 FSD network rating 不允许绑定该 facility type: " + facilityType);
     }
 
-    Atc atc =
-        atcMapper
-            .findByUserId(userId)
-            .orElseGet(() -> Atc.builder().userId(userId).build());
+    Atc atc = atcMapper.findByUserId(userId).orElseGet(() -> Atc.builder().userId(userId).build());
     atc.setNetworkRating(networkRating);
     atc.setFacilityType(facilityType);
     atc.setEnabled(enabled);
@@ -72,7 +69,6 @@ public class AtcServiceImpl implements AtcService {
 
     Atc saved = atcMapper.save(atc);
 
-    // Keep FSD-side network rating aligned with local ATC binding.
     fsdService.updateUser(
         RequestFsdUpdateUser.builder().cid(auth.getCid()).networkRating(networkRating).build());
 

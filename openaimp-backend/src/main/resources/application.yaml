@@ -56,6 +56,16 @@ server:
 app:
   mail:
     from: amstudio@qq.com
+  bootstrap:
+    default-user-cid: ${BOOTSTRAP_DEFAULT_USER_CID:1}
+    default-user-email: ${BOOTSTRAP_DEFAULT_USER_EMAIL:admin@openaimp.local}
+    default-user-password: ${BOOTSTRAP_DEFAULT_USER_PASSWORD:}
+    platform-name: ${BOOTSTRAP_PLATFORM_NAME:OpenAIMP}
+    platform-description: ${BOOTSTRAP_PLATFORM_DESCRIPTION:Open Aerion Integrated Management Platform}
+    platform-logo: ${BOOTSTRAP_PLATFORM_LOGO:}
+    platform-url: ${BOOTSTRAP_PLATFORM_URL:}
+    platform-signed-user-count: ${BOOTSTRAP_PLATFORM_SIGNED_USER_COUNT:1}
+    platform-create-time: ${BOOTSTRAP_PLATFORM_CREATE_TIME:}
   fsd:
     service-base-url: ${FSD_SERVICE_BASE_URL:http://localhost:8000}
     web-base-url: ${FSD_WEB_BASE_URL:http://localhost:8000}
