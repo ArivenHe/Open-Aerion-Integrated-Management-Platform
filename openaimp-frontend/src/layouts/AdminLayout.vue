@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
-import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
+import AdminSidebar from '@/components/AdminSidebar.vue'
 
 const sidebarCollapsed = ref(false)
 
@@ -11,15 +11,15 @@ const toggleSidebar = () => {
 </script>
 
 <template>
-  <el-container class="dashboard-layout">
-    <el-aside :width="sidebarCollapsed ? '76px' : '260px'" class="dashboard-layout__aside">
-      <AppSidebar :collapsed="sidebarCollapsed" />
+  <el-container class="admin-layout">
+    <el-aside :width="sidebarCollapsed ? '76px' : '280px'" class="admin-layout__aside">
+      <AdminSidebar :collapsed="sidebarCollapsed" />
     </el-aside>
     <el-container>
-      <el-header class="dashboard-layout__header">
-        <AppHeader mode="workspace" @toggle-sidebar="toggleSidebar" />
+      <el-header class="admin-layout__header">
+        <AppHeader mode="admin" @toggle-sidebar="toggleSidebar" />
       </el-header>
-      <el-main class="dashboard-layout__main">
+      <el-main class="admin-layout__main">
         <RouterView />
       </el-main>
     </el-container>
@@ -27,13 +27,13 @@ const toggleSidebar = () => {
 </template>
 
 <style scoped>
-.dashboard-layout {
+.admin-layout {
   height: 100vh;
   background: var(--app-bg);
   overflow: hidden;
 }
 
-.dashboard-layout__aside {
+.admin-layout__aside {
   height: 100vh;
   transition: width 0.25s ease;
   background: var(--surface);
@@ -41,12 +41,12 @@ const toggleSidebar = () => {
   overflow: hidden;
 }
 
-.dashboard-layout__header {
+.admin-layout__header {
   padding: 0;
   height: 68px;
 }
 
-.dashboard-layout__main {
+.admin-layout__main {
   padding: 20px;
   height: calc(100vh - 68px);
   overflow-y: auto;
@@ -58,7 +58,7 @@ const toggleSidebar = () => {
 }
 
 @media (max-width: 900px) {
-  .dashboard-layout__main {
+  .admin-layout__main {
     padding: 16px;
   }
 }

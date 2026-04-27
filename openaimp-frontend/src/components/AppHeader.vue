@@ -1,116 +1,290 @@
-<script>
+<script setup>
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { ElMessageBox } from 'element-plus'
+import { Menu, Moon, Promotion, Sunny } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { authEventName, clearSession, getCurrentRbac, getCurrentUser, hasAdminAccess } from '@/utils/session'
+import { isDarkTheme, themeEventName, toggleTheme } from '@/utils/theme'
 
-export default {
-  name: 'AppHeader',
-  props: {
-    collapsed: Boolean
+const emit = defineEmits(['toggle-sidebar'])
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'workspace',
   },
-  emits: ['toggle-sidebar'],
-  data() {
-    return {
-      currentTime: '',
-      timer: null,
-      isDark: false,
-      isUserOpen: false
-    }
-  },
-  mounted() {
-    this.updateTime()
-    this.timer = setInterval(this.updateTime, 1000)
-    
-    // Check initial dark mode
-    if (document.documentElement.classList.contains('dark')) {
-      this.isDark = true
-    }
-    
-    // Close dropdowns on click outside
-    document.addEventListener('click', this.closeDropdowns)
-  },
-  beforeUnmount() {
-    if (this.timer) {
-      clearInterval(this.timer)
-    }
-    document.removeEventListener('click', this.closeDropdowns)
-  },
-  methods: {
-    closeDropdowns(e) {
-      if (!this.$el.contains(e.target)) {
-        this.isUserOpen = false
-      }
-    },
-    toggleUserDropdown() {
-      this.isUserOpen = !this.isUserOpen
-    },
-    updateTime() {
-      // Use a more readable format
-      this.currentTime = new Date().toLocaleTimeString('en-US', { hour12: false }) + ' UTC'
-    },
-    toggleDark() {
-      this.isDark = !this.isDark
-      if (this.isDark) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-    },
-    logOut() {
-      this.$router.push('/login')
+})
+const router = useRouter()
+
+const currentTime = ref('')
+const timer = ref(null)
+const isDark = ref(isDarkTheme())
+const user = ref(getCurrentUser())
+const rbac = ref(getCurrentRbac())
+const adminVisible = ref(hasAdminAccess())
+
+const syncSession = () => {
+  user.value = getCurrentUser()
+  rbac.value = getCurrentRbac()
+  adminVisible.value = hasAdminAccess()
+}
+
+const syncTheme = () => {
+  isDark.value = isDarkTheme()
+}
+
+const updateTime = () => {
+  currentTime.value = new Date().toLocaleString('zh-CN', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+const handleToggleDark = () => {
+  isDark.value = toggleTheme()
+}
+
+const handleCommand = async (command) => {
+  if (command === 'logout') {
+    try {
+      await ElMessageBox.confirm('确定退出当前登录状态吗？', '退出登录', {
+        type: 'warning',
+        confirmButtonText: '退出',
+        cancelButtonText: '取消',
+      })
+      clearSession()
+      window.location.href = '/login'
+    } catch {
+      return
     }
   }
 }
+
+const displayName = computed(() => {
+  const current = user.value
+  if (!current) return '未登录'
+  return current.nickname || [current.firstName, current.lastName].filter(Boolean).join(' ') || current.email || `CID ${current.cid}`
+})
+
+const displayEmail = computed(() => user.value?.email || '暂无邮箱')
+const displayRoles = computed(() => (rbac.value?.roles || []).join(' / ') || '普通用户')
+const avatarText = computed(() => (displayName.value || 'U').trim().charAt(0).toUpperCase())
+const adminButtonLabel = computed(() => (props.mode === 'admin' ? '返回工作台' : '后台管理'))
+const adminButtonIcon = computed(() => Promotion)
+const pageTitle = computed(() => (props.mode === 'admin' ? 'Open AIMP 后台' : 'Open AIMP 控制台'))
+const pageSubtitle = computed(() => (props.mode === 'admin' ? 'RBAC、平台配置与管理操作' : '账号、权限与记录统一入口'))
+
+const jumpAdmin = () => {
+  router.push(props.mode === 'admin' ? '/' : '/admin')
+}
+
+onMounted(() => {
+  updateTime()
+  timer.value = setInterval(updateTime, 1000)
+  window.addEventListener(authEventName, syncSession)
+  window.addEventListener(themeEventName, syncTheme)
+})
+
+onBeforeUnmount(() => {
+  if (timer.value) clearInterval(timer.value)
+  window.removeEventListener(authEventName, syncSession)
+  window.removeEventListener(themeEventName, syncTheme)
+})
 </script>
 
 <template>
-  <header class="h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 sticky top-0 z-30 transition-colors duration-300">
-    <div class="flex items-center gap-4">
-      <button 
-        class="p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
-        @click="$emit('toggle-sidebar')"
-      >
-        <UIcon name="i-heroicons-bars-3" class="w-6 h-6" />
-      </button>
-      <h2 class="text-lg font-medium text-gray-900 dark:text-white hidden md:block">仪表盘</h2>
+  <div class="header-shell" :class="`header-shell--${props.mode}`">
+    <div class="header-left">
+      <el-button circle plain class="header-button" @click="emit('toggle-sidebar')">
+        <el-icon><Menu /></el-icon>
+      </el-button>
+      <div class="header-copy">
+        <h2>{{ pageTitle }}</h2>
+        <p>{{ pageSubtitle }}</p>
+      </div>
     </div>
 
-    <div class="flex items-center gap-3">
-       <!-- Time -->
-      <div class="hidden sm:flex items-center px-3 py-1 bg-gray-50 dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-800">
-        <UIcon name="i-heroicons-clock" class="w-4 h-4 text-gray-500 mr-2" />
-        <span class="text-xs font-mono text-gray-600 dark:text-gray-400">{{ currentTime }}</span>
-      </div>
-      
-      <div class="h-6 w-px bg-gray-200 dark:bg-gray-800 mx-2 hidden sm:block"></div>
+    <div class="header-right">
+      <el-button v-if="adminVisible" class="admin-cta" @click="jumpAdmin">
+        <el-icon><component :is="adminButtonIcon" /></el-icon>
+        <span>{{ adminButtonLabel }}</span>
+      </el-button>
 
-      <!-- Dark Mode Toggle -->
-      <button 
-        @click="toggleDark" 
-        class="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400"
-      >
-        <UIcon :name="isDark ? 'i-heroicons-moon' : 'i-heroicons-sun'" class="w-5 h-5" />
-      </button>
+      <div class="header-time">{{ currentTime }}</div>
 
-      <!-- User Dropdown -->
-      <div class="relative ml-2">
-        <button 
-            @click.stop="toggleUserDropdown"
-            class="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-900 p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-800"
-        >
-            <img src="https://avatars.githubusercontent.com/u/739984?v=4" class="w-8 h-8 rounded-full bg-gray-200" alt="User" />
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:block">用户</span>
-            <UIcon name="i-heroicons-chevron-down" class="w-4 h-4 text-gray-400" />
-        </button>
+      <el-button circle plain class="header-button" @click="handleToggleDark">
+        <el-icon><component :is="isDark ? Moon : Sunny" /></el-icon>
+      </el-button>
 
-        <div v-if="isUserOpen" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 py-1 z-50">
-            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                <p class="text-sm text-gray-900 dark:text-white font-medium">登录身份</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">user@example.com</p>
-            </div>
-            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">个人资料</a>
-            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">设置</a>
-            <div class="border-t border-gray-100 dark:border-gray-800 my-1"></div>
-            <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" @click="logOut">退出登录</a>
+      <el-dropdown trigger="click" @command="handleCommand">
+        <div class="header-user">
+          <div class="header-user__avatar">{{ avatarText }}</div>
+          <div class="header-user__meta">
+            <strong>{{ displayName }}</strong>
+            <span>{{ displayRoles }}</span>
+          </div>
         </div>
-      </div>
+
+        <template #dropdown>
+          <el-dropdown-menu>
+            <div class="dropdown-summary">
+              <strong>{{ displayName }}</strong>
+              <span>{{ displayEmail }}</span>
+            </div>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
-  </header>
+  </div>
 </template>
+
+<style scoped>
+.header-shell {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 20px 0 18px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(20px);
+  --header-accent: var(--workspace-accent);
+  --header-accent-soft: var(--workspace-accent-soft);
+  --header-accent-border: var(--workspace-accent-border);
+}
+
+.header-shell--admin {
+  --header-accent: var(--admin-accent);
+  --header-accent-soft: var(--admin-accent-soft);
+  --header-accent-border: var(--admin-accent-border);
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-copy h2 {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.header-copy p {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.header-button {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border-color: var(--border-color);
+}
+
+.header-time {
+  min-width: 116px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.admin-cta {
+  border-radius: 999px;
+  border: 1px solid var(--header-accent-border);
+  background: var(--header-accent-soft);
+  color: var(--header-accent);
+  box-shadow: none;
+  padding-inline: 14px;
+}
+
+.admin-cta:hover {
+  color: var(--header-accent);
+  background: var(--header-accent-soft);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px 5px 5px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.header-user:hover {
+  background: var(--surface-soft);
+  border-color: var(--border-color);
+}
+
+.header-user__avatar {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--header-accent-soft);
+  color: var(--header-accent);
+  border: 1px solid var(--header-accent-border);
+  font-weight: 700;
+}
+
+.header-user__meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-user__meta strong {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.header-user__meta span {
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  margin-top: 2px;
+}
+
+.dropdown-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 16px 12px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-summary span {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 860px) {
+  .header-copy,
+  .header-time,
+  .header-user__meta {
+    display: none;
+  }
+
+  .header-shell {
+    padding: 0 14px;
+  }
+}
+
+</style>

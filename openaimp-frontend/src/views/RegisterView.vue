@@ -1,347 +1,281 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Key, Lock, Message, Picture, User } from '@element-plus/icons-vue'
 import { fetchCaptcha, register, sendRegisterCode } from '@/api/auth'
 
-const isDark = ref(false)
 const router = useRouter()
-const firstName = ref('')
-const lastName = ref('')
-const email = ref('')
-const password = ref('')
-const passwordConfirm = ref('')
-const captchaKey = ref('')
-const captchaCode = ref('')
-const captchaImage = ref('')
-const emailCode = ref('')
 const loading = ref(false)
-const codeSending = ref(false)
-const messageModal = ref({ show: false, text: '', type: 'success', nextRoute: '' })
+const sending = ref(false)
+const captchaImage = ref('')
+const captchaKey = ref('')
 
-const toggleDark = () => {
-  isDark.value = !isDark.value
-  if (isDark.value) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
-}
-
-const showMessage = (text, type = 'success', nextRoute = '') => {
-  messageModal.value = { show: true, text, type, nextRoute }
-}
-
-const closeMessage = async () => {
-  const nextRoute = messageModal.value.nextRoute
-  messageModal.value = { show: false, text: '', type: 'success', nextRoute: '' }
-  if (nextRoute) {
-    await router.push(nextRoute)
-  }
-}
+const form = reactive({
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  passwordConfirm: '',
+  captchaCode: '',
+  emailCode: '',
+})
 
 const loadCaptcha = async () => {
   try {
-    const res = await fetchCaptcha()
-    captchaKey.value = res.data.captchaKey
-    captchaImage.value = res.data.imageBase64
+    const payload = await fetchCaptcha()
+    captchaKey.value = payload.data.captchaKey
+    captchaImage.value = payload.data.imageBase64
   } catch (error) {
-    showMessage(error.message, 'error')
+    ElMessage.error(error.message)
   }
 }
 
 const handleSendCode = async () => {
-  if (codeSending.value) return
-  if (!email.value) {
-    showMessage('请先填写邮箱', 'error')
+  if (!form.email) {
+    ElMessage.warning('请先填写邮箱')
     return
   }
-  if (!captchaKey.value || !captchaCode.value) {
-    showMessage('请先输入图形验证码', 'error')
+  if (!captchaKey.value || !form.captchaCode) {
+    ElMessage.warning('请先填写图形验证码')
     return
   }
-  codeSending.value = true
+  sending.value = true
   try {
     await sendRegisterCode({
-      email: email.value,
+      email: form.email,
       captchaKey: captchaKey.value,
-      imageCode: captchaCode.value,
+      imageCode: form.captchaCode,
     })
-    showMessage('验证码已发送，请查收邮箱', 'success')
-    captchaCode.value = ''
+    ElMessage.success('验证码已发送，请查收邮箱')
+    form.captchaCode = ''
     await loadCaptcha()
   } catch (error) {
-    showMessage(error.message, 'error')
+    ElMessage.error(error.message)
     await loadCaptcha()
   } finally {
-    codeSending.value = false
+    sending.value = false
   }
 }
 
 const handleRegister = async () => {
-  if (loading.value) return
-  if (password.value !== passwordConfirm.value) {
-    showMessage('两次密码输入不一致', 'error')
+  if (form.password !== form.passwordConfirm) {
+    ElMessage.error('两次密码输入不一致')
     return
   }
   loading.value = true
   try {
-    const res = await register({
-      firstName: firstName.value,
-      lastName: lastName.value,
-      email: email.value,
-      password: password.value,
-      emailCode: emailCode.value,
+    const payload = await register({
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      password: form.password,
+      emailCode: form.emailCode,
     })
-    const cid = res?.data?.cid
-    showMessage(
-      cid ? `注册成功，您的平台 / FSD CID 为 ${cid}，请前往登录` : '注册成功，请前往登录',
-      'success',
-      '/login'
+    await ElMessageBox.alert(
+      payload?.data?.cid
+        ? `注册成功，您的平台 / FSD CID 为 ${payload.data.cid}。`
+        : '注册成功，请前往登录。',
+      '注册完成',
+      { confirmButtonText: '去登录' }
     )
+    await router.push('/login')
   } catch (error) {
-    showMessage(error.message, 'error')
+    ElMessage.error(error.message)
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  isDark.value = document.documentElement.classList.contains('dark')
-  loadCaptcha()
-})
+onMounted(loadCaptcha)
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-white dark:bg-gray-950 relative">
-    <!-- Dark Mode Toggle -->
-    <div class="absolute top-4 right-4 z-50">
-      <button 
-        @click="toggleDark" 
-        class="flex items-center justify-center w-10 h-10 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
-      >
-        <UIcon :name="isDark ? 'i-heroicons-moon' : 'i-heroicons-sun'" class="w-5 h-5" />
-      </button>
-    </div>
+  <div class="register-page">
+    <section class="register-panel">
+      <el-card class="register-card" shadow="never">
+        <template #header>
+          <div class="register-card__header">
+            <h2>创建账号</h2>
+            <p>注册后会自动同步平台账号与 FSD CID。</p>
+          </div>
+        </template>
 
-    <!-- Left Side - Image/Branding -->
-    <div class="hidden lg:flex lg:w-1/2 relative bg-gray-900 overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-tr from-primary-600/90 to-purple-900/90 z-10"></div>
-      <img 
-        src="https://images.unsplash.com/photo-1559067515-bf7d799b6d4d?q=80&w=1974&auto=format&fit=crop" 
-        alt="Aviation Background" 
-        class="absolute inset-0 w-full h-full object-cover"
-      />
-      <div class="relative z-20 flex flex-col justify-center px-12 h-full text-white">
-        <h1 class="text-5xl font-bold mb-6">加入 Open AIMP</h1>
-        <p class="text-xl text-gray-200 max-w-md leading-relaxed">
-          开启您的航空信息之旅。<br>注册成为会员，享受更专业的飞行服务与数据支持。
-        </p>
-        <div class="mt-12 grid grid-cols-2 gap-6">
-           <div class="flex items-center gap-3">
-              <div class="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                 <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                 </svg>
-              </div>
-              <span class="font-medium">实名认证</span>
-           </div>
-           <div class="flex items-center gap-3">
-              <div class="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                 <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                 </svg>
-              </div>
-              <span class="font-medium">极速响应</span>
-           </div>
-           <div class="flex items-center gap-3">
-              <div class="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                 <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                 </svg>
-              </div>
-              <span class="font-medium">全球覆盖</span>
-           </div>
-           <div class="flex items-center gap-3">
-              <div class="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                 <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                 </svg>
-              </div>
-              <span class="font-medium">社区支持</span>
-           </div>
-        </div>
-      </div>
-      <!-- Decorative circles -->
-      <div class="absolute -top-24 -right-24 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl z-10"></div>
-      <div class="absolute bottom-12 left-12 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl z-10"></div>
-    </div>
+        <el-form label-position="top" @submit.prevent="handleRegister">
+          <div class="grid-two">
+            <el-form-item label="名">
+              <el-input v-model="form.firstName" :prefix-icon="User" placeholder="Ariven" />
+            </el-form-item>
+            <el-form-item label="姓">
+              <el-input v-model="form.lastName" :prefix-icon="User" placeholder="Wang" />
+            </el-form-item>
+          </div>
 
-    <!-- Right Side - Register Form -->
-    <div class="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-16">
-      <div class="w-full max-w-md space-y-8">
-        <div class="text-center lg:text-left">
-          <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">创建账户</h2>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            填写以下信息以完成注册
-          </p>
-        </div>
+          <el-form-item label="邮箱">
+            <el-input v-model="form.email" :prefix-icon="Message" placeholder="name@example.com" />
+          </el-form-item>
 
-        <form class="mt-8 space-y-6" @submit.prevent="handleRegister">
-          <div class="space-y-5">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label for="first-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">名</label>
-                <div class="relative">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <input id="first-name" v-model="firstName" name="first-name" type="text"
-                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200"
-                    placeholder="例如：Ariven">
-                </div>
-              </div>
-              <div>
-                <label for="last-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">姓</label>
-                <div class="relative">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A14.936 14.936 0 0112 16c2.476 0 4.812.6 6.879 1.664M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <input id="last-name" v-model="lastName" name="last-name" type="text"
-                    class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200"
-                    placeholder="例如：Wang">
-                </div>
-              </div>
-            </div>
+          <div class="grid-two">
+            <el-form-item label="密码">
+              <el-input v-model="form.password" type="password" show-password :prefix-icon="Lock" />
+            </el-form-item>
+            <el-form-item label="确认密码">
+              <el-input v-model="form.passwordConfirm" type="password" show-password :prefix-icon="Lock" />
+            </el-form-item>
+          </div>
 
-            <div>
-              <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">电子邮箱</label>
-              <div class="relative">
-                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                    </svg>
-                 </div>
-                 <input id="email" v-model="email" name="email" type="email" autocomplete="email" required 
-                   class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                   placeholder="name@example.com">
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-               <div>
-                  <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">密码</label>
-                  <div class="relative">
-                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                     </div>
-                     <input id="password" v-model="password" name="password" type="password" autocomplete="new-password" required 
-                       class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                       placeholder="••••••••">
-                  </div>
-               </div>
-               <div>
-                  <label for="password-confirm" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">确认密码</label>
-                  <div class="relative">
-                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                     </div>
-                     <input id="password-confirm" v-model="passwordConfirm" name="password-confirm" type="password" autocomplete="new-password" required 
-                       class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                       placeholder="••••••••">
-                  </div>
-               </div>
-            </div>
-
-            <!-- Verification Codes -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-               <!-- Graphic Captcha -->
-               <div>
-                  <label for="captcha" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">图形验证码</label>
-                  <div class="flex gap-2">
-                     <div class="relative flex-1">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                           <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                           </svg>
-                        </div>
-                       <input id="captcha" v-model="captchaCode" name="captcha" type="text" required 
-                          class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                          placeholder="输入验证码">
-                     </div>
-                     <button type="button" @click="loadCaptcha" class="w-24 h-11 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300 dark:border-gray-600">
-                        <img v-if="captchaImage" :src="captchaImage" class="w-full h-full object-cover" />
-                     </button>
-                  </div>
-               </div>
-
-               <!-- Email Verification Code -->
-               <div>
-                  <label for="email-code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">邮箱验证码</label>
-                  <div class="flex gap-2">
-                     <div class="relative flex-1">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                           <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                           </svg>
-                        </div>
-                        <input id="email-code" v-model="emailCode" name="email-code" type="text" required 
-                          class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                          placeholder="输入验证码">
-                     </div>
-                     <button type="button" @click="handleSendCode" :disabled="codeSending" class="px-3 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed">
-                        {{ codeSending ? '发送中' : '获取验证码' }}
-                     </button>
-                  </div>
-               </div>
+          <div class="grid-captcha">
+            <el-form-item label="图形验证码">
+              <el-input v-model="form.captchaCode" :prefix-icon="Picture" placeholder="输入图形验证码" />
+            </el-form-item>
+            <div class="captcha-box" @click="loadCaptcha">
+              <img v-if="captchaImage" :src="captchaImage" alt="captcha" />
+              <span v-else>加载中...</span>
             </div>
           </div>
 
-          <div class="flex items-center">
-            <input id="terms" name="terms" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer" required>
-            <label for="terms" class="ml-2 block text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none">
-              我同意 <a href="#" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400">服务条款</a> 和 <a href="#" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400">隐私政策</a>
-            </label>
+          <div class="grid-email-code">
+            <el-form-item label="邮箱验证码">
+              <el-input v-model="form.emailCode" :prefix-icon="Key" placeholder="输入邮箱验证码" />
+            </el-form-item>
+            <el-button class="email-button" plain :loading="sending" @click="handleSendCode">
+              发送验证码
+            </el-button>
           </div>
 
-          <div>
-            <button type="submit" :disabled="loading" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed">
-              {{ loading ? '注册中...' : '注册账户' }}
-            </button>
-          </div>
+          <el-button type="primary" class="submit-button" :loading="loading" @click="handleRegister">
+            完成注册
+          </el-button>
+        </el-form>
 
-          <div class="text-center text-sm mt-6">
-              <span class="text-gray-600 dark:text-gray-400">已有账号? </span>
-              <router-link to="/login" class="font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 transition-colors">
-                直接登录
-              </router-link>
-          </div>
-        </form>
-      </div>
-    </div>
-    <div v-if="messageModal.show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-sm mx-4 overflow-hidden">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-800">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">提示</h3>
+        <div class="register-links">
+          <router-link to="/login">已有账号，去登录</router-link>
         </div>
-        <div class="p-6">
-          <p :class="messageModal.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
-            {{ messageModal.text }}
-          </p>
-        </div>
-        <div class="p-6 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
-          <button @click="closeMessage" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-            确定
-          </button>
-        </div>
-      </div>
-    </div>
+      </el-card>
+    </section>
   </div>
 </template>
+
+<style scoped>
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.1)),
+    #f3f6fb;
+  overflow: auto;
+}
+
+.register-panel {
+  width: min(100%, 720px);
+}
+
+.register-card {
+  border-radius: 28px;
+  border: 1px solid #dbe4f0;
+}
+
+.register-card__header h2 {
+  margin: 0;
+  font-size: 1.9rem;
+  color: #111827;
+}
+
+.register-card__header p {
+  margin: 10px 0 0;
+  color: #6b7280;
+}
+
+.grid-two,
+.grid-captcha,
+.grid-email-code {
+  display: grid;
+  gap: 16px;
+}
+
+.grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-captcha,
+.grid-email-code {
+  grid-template-columns: 1fr 180px;
+  align-items: start;
+}
+
+.captcha-box {
+  height: 78px;
+  border: 1px solid #dbe4f0;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+}
+
+.captcha-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.email-button {
+  margin-top: 30px;
+  height: 42px;
+}
+
+.submit-button {
+  width: 100%;
+  height: 44px;
+  margin-top: 6px;
+}
+
+.register-links {
+  margin-top: 18px;
+  text-align: center;
+}
+
+.register-links a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .grid-two,
+  .grid-captcha,
+  .grid-email-code {
+    grid-template-columns: 1fr;
+  }
+
+  .email-button {
+    margin-top: 0;
+  }
+}
+
+:global(.dark) .register-page {
+  background: #020617;
+}
+
+:global(.dark) .register-card {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+:global(.dark) .register-card__header h2 {
+  color: #f8fafc;
+}
+
+:global(.dark) .register-card__header p {
+  color: #94a3b8;
+}
+
+:global(.dark) .captcha-box {
+  background: #0b1220;
+  border-color: #1e293b;
+}
+</style>

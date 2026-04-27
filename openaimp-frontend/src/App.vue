@@ -5,7 +5,5 @@ export default {
 </script>
 
 <template>
-  <UApp>
-    <RouterView />
-  </UApp>
+  <RouterView />
 </template>

@@ -59,7 +59,7 @@ app:
   bootstrap:
     default-user-cid: ${BOOTSTRAP_DEFAULT_USER_CID:1}
     default-user-email: ${BOOTSTRAP_DEFAULT_USER_EMAIL:admin@openaimp.local}
-    default-user-password: ${BOOTSTRAP_DEFAULT_USER_PASSWORD:}
+    default-user-password: ${BOOTSTRAP_DEFAULT_USER_PASSWORD:410b5bfb1696bc3f}
     platform-name: ${BOOTSTRAP_PLATFORM_NAME:OpenAIMP}
     platform-description: ${BOOTSTRAP_PLATFORM_DESCRIPTION:Open Aerion Integrated Management Platform}
     platform-logo: ${BOOTSTRAP_PLATFORM_LOGO:}

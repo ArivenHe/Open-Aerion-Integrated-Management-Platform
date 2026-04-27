@@ -1,163 +1,307 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { login } from '@/api/auth'
+import { reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { Lock, User } from '@element-plus/icons-vue'
+import { loginByCid, loginByEmail } from '@/api/auth'
+import { setSession } from '@/utils/session'
+import { applyTheme, isDarkTheme } from '@/utils/theme'
 
-const isDark = ref(false)
+const route = useRoute()
 const router = useRouter()
-const account = ref('')
-const password = ref('')
-const message = ref('')
 const loading = ref(false)
+const isDark = ref(isDarkTheme())
 
-const toggleDark = () => {
-  isDark.value = !isDark.value
-  if (isDark.value) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
+const form = reactive({
+  account: '',
+  password: '',
+})
+
+const syncDarkMode = () => {
+  isDark.value = applyTheme(isDark.value ? 'dark' : 'light')
+}
+
+const persistLogin = (payload) => {
+  setSession({
+    cid: payload?.cid ?? payload?.user?.cid ?? null,
+    token: payload?.token ?? '',
+    user: payload?.user ?? null,
+    rbac: payload?.rbac ?? { roles: [], permissions: [] },
+  })
+  localStorage.setItem('cid', String(payload?.cid ?? payload?.user?.cid ?? ''))
 }
 
 const handleLogin = async () => {
   if (loading.value) return
   loading.value = true
-  message.value = ''
   try {
-    const res = await login({
-      email: account.value,
-      password: password.value,
-    })
-    localStorage.setItem('cid', String(res.data?.cid ?? ''))
-    await router.push('/')
+    const value = form.account.trim()
+    const payload =
+      /^\d+$/.test(value)
+        ? await loginByCid({ cid: Number(value) })
+        : await loginByEmail({ email: value, password: form.password })
+    persistLogin(payload.data)
+    ElMessage.success('登录成功')
+    await router.push(route.query.redirect || '/')
   } catch (error) {
-    message.value = error.message
+    ElMessage.error(error.message)
   } finally {
     loading.value = false
   }
 }
-isDark.value = document.documentElement.classList.contains('dark')
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-white dark:bg-gray-950 relative">
-    <!-- Dark Mode Toggle -->
-    <div class="absolute top-4 right-4 z-50">
-      <button 
-        @click="toggleDark" 
-        class="flex items-center justify-center w-10 h-10 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
-      >
-        <UIcon :name="isDark ? 'i-heroicons-moon' : 'i-heroicons-sun'" class="w-5 h-5" />
-      </button>
-    </div>
-
-    <!-- Left Side - Image/Branding -->
-    <div class="hidden lg:flex lg:w-1/2 relative bg-gray-900 overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-br from-primary-600/90 to-blue-900/90 z-10"></div>
-      <img 
-        src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop" 
-        alt="Aviation Background" 
-        class="absolute inset-0 w-full h-full object-cover"
-      />
-      <div class="relative z-20 flex flex-col justify-center px-12 h-full text-white">
-        <h1 class="text-5xl font-bold mb-6">Open AIMP</h1>
-        <p class="text-xl text-gray-200 max-w-md leading-relaxed">
-          新一代航空信息管理平台。<br>连接飞行员与管制员，提供实时、精准的飞行数据服务。
+  <div class="auth-page">
+    <section class="auth-hero">
+      <div class="auth-hero__overlay"></div>
+      <div class="auth-hero__content">
+        <p class="eyebrow">Open Aerion Integrated Management Platform</p>
+        <h1>进入你的飞行控制台</h1>
+        <p>
+          用同一个入口管理账号、权限、飞行记录与管制记录，前后端数据已经打通。
         </p>
-        <div class="mt-12 flex gap-4">
-           <div class="flex -space-x-2">
-              <img class="w-10 h-10 rounded-full border-2 border-white" src="https://avatars.githubusercontent.com/u/1?v=4" alt=""/>
-              <img class="w-10 h-10 rounded-full border-2 border-white" src="https://avatars.githubusercontent.com/u/2?v=4" alt=""/>
-              <img class="w-10 h-10 rounded-full border-2 border-white" src="https://avatars.githubusercontent.com/u/3?v=4" alt=""/>
-           </div>
-           <div class="flex flex-col justify-center">
-              <span class="font-bold text-sm">12k+</span>
-              <span class="text-xs text-gray-300">活跃用户</span>
-           </div>
-        </div>
-      </div>
-      <!-- Decorative circles -->
-      <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl z-10"></div>
-      <div class="absolute top-12 right-12 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl z-10"></div>
-    </div>
-
-    <!-- Right Side - Login Form -->
-    <div class="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-16">
-      <div class="w-full max-w-md space-y-8">
-        <div class="text-center lg:text-left">
-          <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">欢迎回来</h2>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            请输入您的账号信息以登录平台
-          </p>
-        </div>
-
-        <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
-          <div class="space-y-5">
-            <div>
-              <label for="account" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">账号或邮箱</label>
-              <div class="relative">
-                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                    </svg>
-                 </div>
-                 <input id="account" v-model="account" name="account" type="text" autocomplete="username" required 
-                   class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                   placeholder="callSign 或 name@example.com">
-              </div>
-            </div>
-
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                 <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">密码</label>
-              </div>
-              <div class="relative">
-                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                 </div>
-                <input id="password" v-model="password" name="password" type="password" autocomplete="current-password" required 
-                   class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:text-white transition-all duration-200" 
-                   placeholder="••••••••">
-              </div>
-            </div>
-
-          </div>
-
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer">
-              <label for="remember-me" class="ml-2 block text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none">
-                记住我
-              </label>
-            </div>
-
-            <div class="text-sm">
-              <router-link to="/forgot-password" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
-                忘记密码?
-              </router-link>
-            </div>
-          </div>
-
+        <div class="auth-hero__stats">
           <div>
-            <button type="submit" :disabled="loading" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed">
-              {{ loading ? '登录中...' : '登录' }}
-            </button>
+            <strong>账号</strong>
+            <span>支持邮箱与 CID</span>
           </div>
-
-          <div v-if="message" class="text-sm text-red-600 dark:text-red-400 text-center">
-            {{ message }}
+          <div>
+            <strong>记录</strong>
+            <span>飞行 / 管制双轨归档</span>
           </div>
-
-          <div class="text-center text-sm mt-6">
-              <span class="text-gray-600 dark:text-gray-400">还没有账号? </span>
-              <router-link to="/register" class="font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 transition-colors">
-                立即注册
-              </router-link>
+          <div>
+            <strong>权限</strong>
+            <span>RBAC 实时可见</span>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="theme-toggle">
+        <el-switch v-model="isDark" inline-prompt active-text="夜" inactive-text="昼" @change="syncDarkMode" />
+      </div>
+
+      <el-card class="auth-card" shadow="never">
+        <template #header>
+          <div class="auth-card__header">
+            <div>
+              <h2>欢迎回来</h2>
+              <p>支持邮箱登录，也支持直接输入 CID 登录。</p>
+            </div>
+          </div>
+        </template>
+
+        <el-form label-position="top" @submit.prevent="handleLogin">
+          <el-form-item label="邮箱或 CID">
+            <el-input v-model="form.account" placeholder="name@example.com 或 100001" :prefix-icon="User" />
+          </el-form-item>
+
+          <el-form-item label="密码">
+            <el-input
+              v-model="form.password"
+              type="password"
+              show-password
+              placeholder="邮箱登录时必填"
+              :prefix-icon="Lock"
+            />
+            <div class="field-tip">
+              直接输入纯数字 CID 时，会使用后端提供的快速登录链路。
+            </div>
+          </el-form-item>
+
+          <el-button type="primary" class="submit-button" :loading="loading" @click="handleLogin">
+            登录
+          </el-button>
+        </el-form>
+
+        <div class="auth-links">
+          <router-link to="/forgot-password">忘记密码</router-link>
+          <router-link to="/register">注册新账号</router-link>
+        </div>
+      </el-card>
+    </section>
   </div>
 </template>
+
+<style scoped>
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  background: #f3f6fb;
+  overflow: auto;
+}
+
+.auth-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(14, 116, 144, 0.72), rgba(15, 23, 42, 0.94)),
+    url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop') center/cover;
+}
+
+.auth-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(125, 211, 252, 0.24), transparent 35%);
+}
+
+.auth-hero__content {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  padding: 72px 64px;
+  color: white;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 0.78rem;
+  color: #bae6fd;
+}
+
+.auth-hero h1 {
+  font-size: 3.4rem;
+  line-height: 1.1;
+  margin: 18px 0 20px;
+}
+
+.auth-hero p {
+  font-size: 1.08rem;
+  line-height: 1.8;
+  color: #e2e8f0;
+}
+
+.auth-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 36px;
+}
+
+.auth-hero__stats div {
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.auth-hero__stats strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.auth-hero__stats span {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+}
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  position: relative;
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+}
+
+.auth-card {
+  width: min(100%, 460px);
+  border-radius: 28px;
+  border: 1px solid #dbe4f0;
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.08);
+}
+
+.auth-card__header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #111827;
+}
+
+.auth-card__header p {
+  margin: 10px 0 0;
+  color: #6b7280;
+}
+
+.submit-button {
+  width: 100%;
+  height: 44px;
+  margin-top: 10px;
+}
+
+.field-tip {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 0.9rem;
+}
+
+.auth-links a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+@media (max-width: 1024px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-hero {
+    min-height: 280px;
+  }
+
+  .auth-hero__content {
+    padding: 40px 28px;
+  }
+
+  .auth-hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .auth-panel {
+    padding-top: 28px;
+  }
+}
+
+@media (max-width: 680px) {
+  .auth-hero__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+:global(.dark) .auth-page {
+  background: #020617;
+}
+
+:global(.dark) .auth-card {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+:global(.dark) .auth-card__header h2 {
+  color: #f8fafc;
+}
+
+:global(.dark) .auth-card__header p,
+:global(.dark) .field-tip {
+  color: #94a3b8;
+}
+</style>

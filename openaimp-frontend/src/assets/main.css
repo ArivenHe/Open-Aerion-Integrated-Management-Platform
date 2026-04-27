@@ -1,24 +1,171 @@
-@config "../../tailwind.config.js";
-@import "tailwindcss";
-@import "@nuxt/ui";
-
 :root {
-  --color-primary-50: 239 246 255;
-  --color-primary-100: 219 234 254;
-  --color-primary-200: 191 219 254;
-  --color-primary-300: 147 197 253;
-  --color-primary-400: 96 165 250;
-  --color-primary-500: 59 130 246;
-  --color-primary-600: 37 99 235;
-  --color-primary-700: 29 78 216;
-  --color-primary-800: 30 64 175;
-  --color-primary-900: 30 58 138;
-  --color-primary-950: 23 37 84;
+  color-scheme: light;
+  font-family: 'Inter', 'SF Pro Display', 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background: #f4f7fb;
+  color: #111827;
+  --app-bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-elevated: #fbfdff;
+  --text-primary: #111827;
+  --text-secondary: #5b6b82;
+  --text-tertiary: #90a0b7;
+  --border-color: #dde5f0;
+  --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.045);
+  --workspace-accent: #2563eb;
+  --workspace-accent-soft: rgba(37, 99, 235, 0.1);
+  --workspace-accent-border: rgba(37, 99, 235, 0.2);
+  --admin-accent: #ea580c;
+  --admin-accent-soft: rgba(234, 88, 12, 0.1);
+  --admin-accent-border: rgba(234, 88, 12, 0.2);
+  --el-bg-color: var(--surface);
+  --el-bg-color-page: var(--app-bg);
+  --el-bg-color-overlay: var(--surface-elevated);
+  --el-fill-color-blank: var(--surface);
+  --el-fill-color-light: var(--surface-soft);
+  --el-fill-color-lighter: var(--surface-soft);
+  --el-fill-color-extra-light: var(--surface-soft);
+  --el-fill-color-dark: rgba(15, 23, 42, 0.04);
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-secondary: var(--text-tertiary);
+  --el-border-color: var(--border-color);
+  --el-border-color-light: var(--border-color);
+  --el-border-color-lighter: var(--border-color);
+  --el-border-color-extra-light: var(--border-color);
+  --el-mask-color: rgba(15, 23, 42, 0.55);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-html, body, #app {
+html,
+body,
+#app {
   height: 100%;
   margin: 0;
-  padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+}
+
+body {
+  background: var(--app-bg);
+}
+
+a {
+  color: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --app-bg: #0a1120;
+  --surface: #0f1728;
+  --surface-soft: #0c1424;
+  --surface-elevated: #131d31;
+  --text-primary: #eef4ff;
+  --text-secondary: #98a9c4;
+  --text-tertiary: #667995;
+  --border-color: #22314a;
+  --shadow-soft: 0 20px 40px rgba(2, 6, 23, 0.24);
+  --workspace-accent-soft: rgba(96, 165, 250, 0.16);
+  --workspace-accent-border: rgba(96, 165, 250, 0.26);
+  --admin-accent-soft: rgba(251, 146, 60, 0.14);
+  --admin-accent-border: rgba(251, 146, 60, 0.24);
+  --el-mask-color: rgba(2, 6, 23, 0.78);
+}
+
+:root.dark body {
+  background: var(--app-bg);
+}
+
+.el-card {
+  --el-card-padding: 22px;
+}
+
+.el-table,
+.el-table th.el-table__cell,
+.el-table tr,
+.el-table td.el-table__cell,
+.el-descriptions,
+.el-descriptions__body,
+.el-dialog,
+.el-tabs__nav-wrap::after,
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper,
+.el-pagination button {
+  background-color: var(--surface);
+}
+
+.el-table {
+  --el-table-bg-color: var(--surface);
+  --el-table-tr-bg-color: var(--surface);
+  --el-table-header-bg-color: var(--surface-soft);
+  --el-table-row-hover-bg-color: var(--surface-soft);
+  --el-table-border-color: var(--border-color);
+  --el-table-header-text-color: var(--text-secondary);
+  --el-table-text-color: var(--text-primary);
+}
+
+.el-descriptions {
+  --el-descriptions-table-border: var(--border-color);
+}
+
+.el-descriptions__cell,
+.el-descriptions__label {
+  background: var(--surface);
+}
+
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(1480px, 100%);
+  margin: 0 auto;
+}
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 1.9rem;
+  color: var(--text-primary);
+}
+
+.page-head p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+}
+
+.app-panel-card {
+  border-radius: 22px;
+  border: 1px solid var(--border-color);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.el-button {
+  --el-button-border-radius: 14px;
+}
+
+.el-tag {
+  --el-tag-border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
