@@ -1,12 +1,13 @@
 package cn.ariven.openaimpbackend.config;
 
+import cn.dev33.satoken.context.SaHolder;
+import cn.dev33.satoken.filter.SaServletFilter;
 import cn.dev33.satoken.interceptor.SaInterceptor;
+import cn.dev33.satoken.router.SaHttpMethod;
+import cn.dev33.satoken.router.SaRouter;
 import cn.dev33.satoken.stp.StpUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -23,24 +24,31 @@ public class SaTokenConfigure implements WebMvcConfigurer {
         .excludePathPatterns("/captcha/**");
   }
 
-  /** 2. 跨域过滤器 (最高优先级) 这种方式比 addCorsMappings 更稳定，能解决预检请求 (OPTIONS) 被拦截的问题 */
+  /** 2. 注册 [Sa-Token 全局过滤器] 解决跨域 */
   @Bean
-  public CorsFilter corsFilter() {
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    CorsConfiguration config = new CorsConfiguration();
+  public SaServletFilter getSaServletFilter() {
+    return new SaServletFilter()
+        .addInclude("/**")
+        .setBeforeAuth(
+            obj -> {
+              // ---------- 设置跨域响应头 ----------
+              SaHolder.getResponse()
+                  .setHeader("Access-Control-Allow-Origin", "*")
+                  .setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT")
+                  .setHeader("Access-Control-Allow-Headers", "*")
+                  .setHeader("Access-Control-Max-Age", "3600");
 
-    // 是否允许发送 Cookie
-    config.setAllowCredentials(true);
-    // 允许所有的域名 patterns
-    config.addAllowedOriginPattern("*");
-    // 允许所有的 Header
-    config.addAllowedHeader("*");
-    // 允许所有的请求方法 (GET, POST...)
-    config.addAllowedMethod("*");
-    // 预检请求有效期 (1小时)
-    config.setMaxAge(3600L);
-
-    source.registerCorsConfiguration("/**", config);
-    return new CorsFilter(source);
+              // 如果是 OPTIONS 预检请求，直接结束请求
+              SaRouter.match(SaHttpMethod.OPTIONS)
+                  .free(
+                      res -> {
+                        // 修正：这里不要用 return "ok"，直接用 SaRouter.back() 拦截并返回
+                        SaRouter.back("ok");
+                      });
+            })
+        .setAuth(
+            obj -> {
+              // 这里可以留空
+            });
   }
 }
